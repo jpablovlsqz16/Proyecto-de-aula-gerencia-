@@ -1,0 +1,20 @@
+PASO 0 · Documentos corregidos (se sube PRIMERO, antes de la HU-01)
+Lo sube: Iván Santiago
+
+Archivos (copiar la carpeta Docs/ en la raíz del repositorio y reemplazar):
+  Docs/Sprint_Planning.md                       los productos de gestión pasan a E-01…E-26; agrega HU-01…HU-16 de la app; DoD sin Google Sheets
+  Docs/Desarrollo_Primera_Entrega.md            HU-01…HU-16 de gestión → E-01…E-16
+  Docs/Historias_Usuario_Segunda_Entrega.md     HU-17…HU-26 → E-17…E-26
+  Docs/Registro_Commits.md                      referencias HU → E
+  Docs/Historias_Usuario_Construccion_App.docx  historias de usuario de la app (nuevo)
+  Docs/img/arquitectura_app.png                 diagrama de arquitectura (nuevo)
+
+Comandos:
+  git checkout main
+  git pull origin main
+  git checkout -b correccion-numeracion-y-planificacion
+  (copiar aquí la carpeta Docs de este paquete)
+  git add -A
+  git commit -m "docs: numeración única (E-01 a E-26 gestión, HU-01 a HU-16 app), planificación y arquitectura de la app"
+  git push -u origin correccion-numeracion-y-planificacion
+  → GitHub: Compare & pull request → base main → Create pull request → Merge.

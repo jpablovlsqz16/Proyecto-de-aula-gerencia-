@@ -1,7 +1,11 @@
-# Historias de Usuario – Segunda Entrega
+# Entregables de gestión – Segunda Entrega (E-17 a E-26)
 
 **Tablero de Indicadores · Panadería San Nicolás (pan trenza)**  
 Proyecto de Aula 2026-2 · Gerencia de Proyectos · Metodología Scrum
+
+---
+
+> **Numeración (corrección por observación del docente):** los productos de gestión del informe se identifican como entregables **E-01 a E-26**. Las historias de usuario **HU-01 a HU-16** son las de construcción de la aplicación (`Docs/Historias_Usuario_Construccion_App.docx`). Así hay una sola numeración por tipo y no se repiten números.
 
 ---
 
@@ -24,12 +28,12 @@ Las historias se estiman en puntos con la secuencia de Fibonacci (1, 2, 3, 5, 8,
 
 | # | Contenido exigido en la guía | Historias |
 |---|---|---|
-| 1 | Análisis y aplicación del modelo híbrido | HU-17, HU-18 |
-| 2 | Modelo de negocio: CANVAS ampliado, PESTEL, propuesta de valor y vía de escalamiento | HU-19, HU-20 |
-| 3 | Evaluación de opciones de financiación | HU-21 |
-| 4 | Aplicación o simulación de la ejecución | HU-22 |
-| 5 | Resultados: aplicación, pruebas, validación, beneficio, lecciones y sostenimiento | HU-23, HU-24, HU-25 |
-| 6 | Exposición y demostración en vivo | HU-26 |
+| 1 | Análisis y aplicación del modelo híbrido | E-17, E-18 |
+| 2 | Modelo de negocio: CANVAS ampliado, PESTEL, propuesta de valor y vía de escalamiento | E-19, E-20 |
+| 3 | Evaluación de opciones de financiación | E-21 |
+| 4 | Aplicación o simulación de la ejecución | E-22 |
+| 5 | Resultados: aplicación, pruebas, validación, beneficio, lecciones y sostenimiento | E-23, E-24, E-25 |
+| 6 | Exposición y demostración en vivo | E-26 |
 
 ---
 
@@ -37,23 +41,23 @@ Las historias se estiman en puntos con la secuencia de Fibonacci (1, 2, 3, 5, 8,
 
 | ID | Historia | Rol | Responsable | Prioridad | Puntos |
 |---|---|---|---|---|---|
-| HU-17 | Definir el modelo híbrido | Desarrollador | Iván Santiago | Alta | 5 |
-| HU-18 | Priorizar con MoSCoW y gestionar el flujo con Kanban | Desarrollador | Iván Santiago | Media | 3 |
-| HU-19 | Construir el CANVAS ampliado | Scrum Master | Juan Pablo | Alta | 8 |
-| HU-20 | Realizar el análisis PESTEL | QA | María Camila | Media | 3 |
-| HU-21 | Evaluar opciones de financiación | Desarrollador | Juan José | Media | 5 |
-| HU-22 | Registrar el seguimiento de la ejecución | Scrum Master | Juan Pablo | Alta | 8 |
-| HU-23 | Ejecutar el plan de pruebas | QA | María Camila | Alta | 5 |
-| HU-24 | Validar la aplicación con el usuario | QA | María Camila | Alta | 3 |
-| HU-25 | Registrar resultados y cierre | QA | María Camila | Media | 3 |
-| HU-26 | Preparar la sustentación y la demostración | Desarrollador | Juan José | Alta | 3 |
+| E-17 | Definir el modelo híbrido | Desarrollador | Iván Santiago | Alta | 5 |
+| E-18 | Priorizar con MoSCoW y gestionar el flujo con Kanban | Desarrollador | Iván Santiago | Media | 3 |
+| E-19 | Construir el CANVAS ampliado | Scrum Master | Juan Pablo | Alta | 8 |
+| E-20 | Realizar el análisis PESTEL | QA | María Camila | Media | 3 |
+| E-21 | Evaluar opciones de financiación | Desarrollador | Juan José | Media | 5 |
+| E-22 | Registrar el seguimiento de la ejecución | Scrum Master | Juan Pablo | Alta | 8 |
+| E-23 | Ejecutar el plan de pruebas | QA | María Camila | Alta | 5 |
+| E-24 | Validar la aplicación con el usuario | QA | María Camila | Alta | 3 |
+| E-25 | Registrar resultados y cierre | QA | María Camila | Media | 3 |
+| E-26 | Preparar la sustentación y la demostración | Desarrollador | Juan José | Alta | 3 |
 | | **Total** | | | | **46** |
 
 ---
 
 ## Historias de usuario
 
-### HU-17 · Definir el modelo híbrido
+### E-17 · Definir el modelo híbrido
 
 | Campo | Detalle |
 |---|---|
@@ -67,7 +71,7 @@ Las historias se estiman en puntos con la secuencia de Fibonacci (1, 2, 3, 5, 8,
 
 ---
 
-### HU-18 · Priorizar con MoSCoW y gestionar el flujo con Kanban
+### E-18 · Priorizar con MoSCoW y gestionar el flujo con Kanban
 
 | Campo | Detalle |
 |---|---|
@@ -81,7 +85,7 @@ Las historias se estiman en puntos con la secuencia de Fibonacci (1, 2, 3, 5, 8,
 
 ---
 
-### HU-19 · Construir el CANVAS ampliado
+### E-19 · Construir el CANVAS ampliado
 
 | Campo | Detalle |
 |---|---|
@@ -95,7 +99,7 @@ Las historias se estiman en puntos con la secuencia de Fibonacci (1, 2, 3, 5, 8,
 
 ---
 
-### HU-20 · Realizar el análisis PESTEL
+### E-20 · Realizar el análisis PESTEL
 
 | Campo | Detalle |
 |---|---|
@@ -109,7 +113,7 @@ Las historias se estiman en puntos con la secuencia de Fibonacci (1, 2, 3, 5, 8,
 
 ---
 
-### HU-21 · Evaluar opciones de financiación
+### E-21 · Evaluar opciones de financiación
 
 | Campo | Detalle |
 |---|---|
@@ -123,7 +127,7 @@ Las historias se estiman en puntos con la secuencia de Fibonacci (1, 2, 3, 5, 8,
 
 ---
 
-### HU-22 · Registrar el seguimiento de la ejecución
+### E-22 · Registrar el seguimiento de la ejecución
 
 | Campo | Detalle |
 |---|---|
@@ -137,7 +141,7 @@ Las historias se estiman en puntos con la secuencia de Fibonacci (1, 2, 3, 5, 8,
 
 ---
 
-### HU-23 · Ejecutar el plan de pruebas
+### E-23 · Ejecutar el plan de pruebas
 
 | Campo | Detalle |
 |---|---|
@@ -151,7 +155,7 @@ Las historias se estiman en puntos con la secuencia de Fibonacci (1, 2, 3, 5, 8,
 
 ---
 
-### HU-24 · Validar la aplicación con el usuario
+### E-24 · Validar la aplicación con el usuario
 
 | Campo | Detalle |
 |---|---|
@@ -165,7 +169,7 @@ Las historias se estiman en puntos con la secuencia de Fibonacci (1, 2, 3, 5, 8,
 
 ---
 
-### HU-25 · Registrar resultados y cierre
+### E-25 · Registrar resultados y cierre
 
 | Campo | Detalle |
 |---|---|
@@ -179,7 +183,7 @@ Las historias se estiman en puntos con la secuencia de Fibonacci (1, 2, 3, 5, 8,
 
 ---
 
-### HU-26 · Preparar la sustentación y la demostración
+### E-26 · Preparar la sustentación y la demostración
 
 | Campo | Detalle |
 |---|---|
