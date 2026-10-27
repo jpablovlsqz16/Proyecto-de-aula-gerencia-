@@ -3,11 +3,14 @@
 **Tablero de Indicadores · Panadería San Nicolás (pan trenza)**  
 Proyecto de Aula 2026-2 · Gerencia de Proyectos · Ingeniería Industrial · Universidad de Medellín
 
-Este documento desarrolla las historias de usuario de la primera entrega, excepto las relacionadas con la aplicación (HU-13 repositorio, HU-14 arquitectura y HU-16 prototipo v0). Los datos marcados como `[completar]` deben confirmarse con la Panadería San Nicolás, y las cifras marcadas como supuesto deben validarse con el dueño antes de entregarse.
+Este documento desarrolla los entregables de la primera entrega, excepto los relacionados con la aplicación (E-13 repositorio, E-14 arquitectura y E-16 prototipo v0), que se construyen con las historias de usuario HU-01 a HU-16. Los datos marcados como `[completar]` deben confirmarse con la Panadería San Nicolás, y las cifras marcadas como supuesto deben validarse con el dueño antes de entregarse.
 
 ---
 
-## HU-01 · Información de la empresa y del proceso
+
+> **Numeración (corrección por observación del docente):** los productos de gestión del informe se identifican como entregables **E-01 a E-26**. Las historias de usuario **HU-01 a HU-16** son las de construcción de la aplicación (`Docs/Historias_Usuario_Construccion_App.docx`). Así hay una sola numeración por tipo y no se repiten números.
+
+## E-01 · Información de la empresa y del proceso
 
 ### La empresa
 
@@ -46,7 +49,7 @@ La operación es producir pan trenza todos los días: es permanente, repetitiva 
 
 ---
 
-## HU-02 · SIPOC del proceso de pan trenza
+## E-02 · SIPOC del proceso de pan trenza
 
 | Proveedores (S) | Entradas (I) | Proceso (P) | Salidas (O) | Clientes (C) |
 |---|---|---|---|---|
@@ -54,7 +57,7 @@ La operación es producir pan trenza todos los días: es permanente, repetitiva 
 
 ---
 
-## HU-03 · Estrategia corporativa
+## E-03 · Estrategia corporativa
 
 *Misión, visión y objetivos propuestos por el equipo. Validarlos con el dueño de la panadería.*
 
@@ -77,7 +80,7 @@ La aplicación aporta directamente al OE5 (digitalizar la gestión) y es el medi
 
 ---
 
-## HU-04 · Portafolio, programas y proyectos
+## E-04 · Portafolio, programas y proyectos
 
 | Nivel | Componente | Pregunta de gestión y beneficio |
 |---|---|---|
@@ -90,7 +93,7 @@ La aplicación aporta directamente al OE5 (digitalizar la gestión) y es el medi
 
 ---
 
-## HU-05 · Clasificación del proyecto y ciclo de vida
+## E-05 · Clasificación del proyecto y ciclo de vida
 
 ### Clasificación descriptiva
 
@@ -128,13 +131,13 @@ La aplicación aporta directamente al OE5 (digitalizar la gestión) y es el medi
 | 4. Cierre | 29 oct | Informe final, sustentación, lecciones aprendidas | Entrega final: aceptación del docente |
 
 **Los tres ciclos:**
-- **Ciclo de preinversión:** idea → perfil → prefactibilidad → factibilidad (HU-07 y HU-08). Decide si el proyecto nace.
+- **Ciclo de preinversión:** idea → perfil → prefactibilidad → factibilidad (E-07 y E-08). Decide si el proyecto nace.
 - **Ciclo de vida del proyecto:** las 4 fases anteriores, de julio a octubre de 2026.
 - **Ciclo de vida del producto:** empieza cuando la panadería usa el tablero y dura mientras lo siga usando, más allá del cierre del proyecto.
 
 ---
 
-## HU-06 · ODS y responsabilidad social empresarial
+## E-06 · ODS y responsabilidad social empresarial
 
 ### Contribución a los ODS
 
@@ -157,7 +160,7 @@ La aplicación aporta directamente al OE5 (digitalizar la gestión) y es el medi
 
 ---
 
-## HU-07 · Estudios de prefactibilidad y factibilidad
+## E-07 · Estudios de prefactibilidad y factibilidad
 
 ### Prefactibilidad: alternativas comparadas
 Con información secundaria se compararon cinco alternativas: (A) no hacer nada, (B) registro manual en Excel, (C) Power BI, (D) software comercial de gestión para panaderías y (E) construir una aplicación propia en Google Apps Script. Las alternativas C y D se descartaron por costo de licencias y porque la guía del curso no admite como producto un archivo de Power BI, Looker Studio o Excel sin desarrollo propio. La alternativa A se mantiene como base de comparación. Pasa a factibilidad la alternativa E.
@@ -172,18 +175,18 @@ Con información secundaria se compararon cinco alternativas: (A) no hacer nada,
 | Ambiental | No requiere licencia ambiental. Impacto positivo: menos pan desperdiciado y menos gas en horneadas innecesarias. | Pasa |
 | Social y de interesados | Los operarios podrían ver el registro de datos como control. Se mitiga comunicando que se miden procesos, no personas, e involucrándolos en el diseño de la planilla. | Pasa con condiciones |
 | Organizacional | Los operarios registran los datos en una planilla (unos 10 minutos por turno) y el administrador revisa el tablero (unos 15 minutos por día). No requiere contratar personal. | Pasa |
-| Financiero | Costo en efectivo para la panadería cercano a $0. Beneficio estimado de $432.000 al mes por reducción del pan no vendido (ver HU-08). | Pasa |
+| Financiero | Costo en efectivo para la panadería cercano a $0. Beneficio estimado de $432.000 al mes por reducción del pan no vendido (ver E-08). | Pasa |
 
 **Capa transversal:**
-- **Riesgo:** registro de riesgos en la HU-11.
-- **Sostenibilidad:** contribución a las metas ODS 12.3 y 8.2 (HU-06).
-- **Beneficios:** cada beneficio tiene indicador, línea base, responsable y momento de medición (HU-08).
+- **Riesgo:** registro de riesgos en la E-11.
+- **Sostenibilidad:** contribución a las metas ODS 12.3 y 8.2 (E-06).
+- **Beneficios:** cada beneficio tiene indicador, línea base, responsable y momento de medición (E-08).
 
 *Conclusión:* el proyecto es factible. Ninguno de los siete estudios arroja un "no".
 
 ---
 
-## HU-08 · Business case
+## E-08 · Business case
 
 ### 1. Problema u oportunidad
 La panadería no mide su desempeño: no sabe cuánto pan trenza se desperdicia, cuánto tiempo pierde el horno ni si cumple los pedidos. Las decisiones sobre cuánto producir se toman por intuición, lo que genera sobreproducción o agotados. El problema se alinea con los objetivos estratégicos OE1 a OE5.
@@ -230,7 +233,7 @@ Para la panadería el costo en efectivo es casi nulo, porque el desarrollo lo ha
 
 ### 5. Supuestos, riesgos y restricciones
 - **Supuestos:** producción y costo unitario estimados; la panadería registra los datos todos los turnos; el tablero se usa para ajustar la producción.
-- **Riesgos:** ver la HU-11.
+- **Riesgos:** ver la E-11.
 - **Restricciones:** fecha de entrega fija (29 de octubre), presupuesto en efectivo cercano a cero y equipo de 4 personas con otras materias.
 
 ### 6. Recursos solicitados
@@ -244,7 +247,7 @@ Unas 240 horas del equipo entre julio y octubre de 2026, una cuenta de Google y 
 
 ---
 
-## HU-09 · Acta de constitución del proyecto
+## E-09 · Acta de constitución del proyecto
 
 | Campo | Contenido |
 |---|---|
@@ -262,7 +265,7 @@ Unas 240 horas del equipo entre julio y octubre de 2026, una cuenta de Google y 
 | Presupuesto resumido | $4.800.000 en horas del equipo (costo de oportunidad) + reserva de contingencia del 10 % ($480.000). Costo en efectivo cercano a $0. |
 | Supuestos | El equipo dedica unas 4 horas por semana por persona; los datos se simulan con autorización del docente; las herramientas de Google siguen siendo gratuitas. |
 | Restricciones | Fechas fijas; máximo 3 integrantes según la guía (el equipo debe confirmar su conformación con el docente); informe de máximo 10 páginas. |
-| Criterios de éxito | Los cuatro de la HU-08. |
+| Criterios de éxito | Los cuatro de la E-08. |
 | Aprobación | Patrocinador: ______________ &nbsp;&nbsp;&nbsp; Product Owner: ______________ &nbsp;&nbsp;&nbsp; Líder: ______________ |
 
 ### Registro de interesados
@@ -278,7 +281,7 @@ Unas 240 horas del equipo entre julio y octubre de 2026, una cuenta de Google y 
 
 ---
 
-## HU-10 · EDT y líneas base
+## E-10 · EDT y líneas base
 
 ### Enunciado del alcance
 El proyecto entrega una aplicación web que carga un archivo de datos del proceso de pan trenza, valida su estructura, calcula OEE, SLA, % no vendido y productividad de mano de obra, y los muestra en un tablero con filtros y semáforos. Incluye la formulación del proyecto, la simulación de datos y la documentación exigida por la guía.
@@ -316,7 +319,7 @@ El proyecto entrega una aplicación web que carga un archivo de datos del proces
 
 ---
 
-## HU-11 · Gestión de riesgos
+## E-11 · Gestión de riesgos
 
 Escala de 1 a 5 para probabilidad (P) e impacto (I). Nivel = P × I: alto de 12 a 25, medio de 6 a 11, bajo de 1 a 5.
 
@@ -349,7 +352,7 @@ Escala de 1 a 5 para probabilidad (P) e impacto (I). Nivel = P × I: alto de 12 
 
 ---
 
-## HU-12 · Marco Scrum
+## E-12 · Marco Scrum
 
 ### Roles
 
@@ -362,16 +365,16 @@ Escala de 1 a 5 para probabilidad (P) e impacto (I). Nivel = P × I: alto de 12 
 | Iván Santiago | Desarrollador | Desarrollo técnico de la aplicación |
 
 ### Product Backlog priorizado
-El backlog contiene las historias HU-01 a HU-16 de la primera entrega, cada una con descripción, criterios de aceptación y estimación en puntos de Fibonacci (anexo de historias de usuario). Se prioriza por valor para el Product Owner y por dependencias: primero la formulación, luego la gestión y por último la arquitectura y el prototipo.
+El backlog contiene las historias E-01 a E-16 de la primera entrega, cada una con descripción, criterios de aceptación y estimación en puntos de Fibonacci (anexo de historias de usuario). Se prioriza por valor para el Product Owner y por dependencias: primero la formulación, luego la gestión y por último la arquitectura y el prototipo.
 
 ### Sprints de la primera etapa
 *Fechas propuestas. Ajústenlas a las fechas reales en que trabajaron.*
 
 | Sprint | Fechas | Historias | Meta |
 |---|---|---|---|
-| Sprint 1 | 28 jul – 10 ago | HU-01 a HU-06 | Empresa, proceso, estrategia y clasificación |
-| Sprint 2 | 11 ago – 24 ago | HU-07 a HU-11 | Estudios, business case, acta, EDT y riesgos |
-| Sprint 3 | 25 ago – 7 sep | HU-12 a HU-16 | Scrum, arquitectura, fichas y prototipo v0 |
+| Sprint 1 | 28 jul – 10 ago | E-01 a E-06 | Empresa, proceso, estrategia y clasificación |
+| Sprint 2 | 11 ago – 24 ago | E-07 a E-11 | Estudios, business case, acta, EDT y riesgos |
+| Sprint 3 | 25 ago – 7 sep | E-12 a E-16 | Scrum, arquitectura, fichas y prototipo v0 |
 
 ### Tablero
 Tablero en Trello con las columnas: `Product Backlog` · `Por hacer (sprint)` · `En progreso` · `En revisión (QA)` · `Terminado`. Cada tarjeta es una historia de usuario con su checklist de criterios de aceptación, su responsable y sus puntos.
@@ -388,7 +391,7 @@ Enlace al repositorio: `[completar]` · Enlace al tablero de Trello: `[completar
 
 ---
 
-## HU-15 · Fichas técnicas de los indicadores
+## E-15 · Fichas técnicas de los indicadores
 
 *Frecuencias: los datos se registran en cada turno, los indicadores se calculan por turno y por día, y se analizan cada semana y cada mes.*
 

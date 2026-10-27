@@ -6,7 +6,7 @@ Repositorio oficial: [GitHub - jpablovlsqz16/Proyecto-de-aula-gerencia-](https:/
 
 ---
 
-## 1. Propósito y trazabilidad (HU-22)
+## 1. Propósito y trazabilidad (E-22)
 
 Este documento consolida el historial de commits, ramas y fusiones (pull requests) del repositorio como evidencia formal de la ejecución y el seguimiento del proyecto según el marco Scrum.
 
@@ -39,8 +39,8 @@ Este documento consolida el historial de commits, ramas y fusiones (pull request
 
 1. **`Sprint_Planning.md`:** Planificación de los 3 sprints, estimaciones en puntos Fibonacci, matriz de responsabilidades y Definition of Done.
 2. **`Daily_Scrum.md`:** Actas y evidencias fotográficas de las reuniones diarias de sincronización.
-3. **`Desarrollo_Primera_Entrega.md`:** Documento formal con el desarrollo de las historias HU-01 a HU-12 y HU-15 (SIPOC, estrategia, portafolio, clasificación, ODS/RSE, prefactibilidad, factibilidad, business case, acta, EDT, riesgos y fichas técnicas de indicadores).
+3. **`Desarrollo_Primera_Entrega.md`:** Documento formal con el desarrollo de los entregables E-01 a E-12 y E-15 (SIPOC, estrategia, portafolio, clasificación, ODS/RSE, prefactibilidad, factibilidad, business case, acta, EDT, riesgos y fichas técnicas de indicadores).
 4. **`Supuestos_Simulacion.md`:** Justificación técnica y matemática de la simulación de datos (Montecarlo, Poisson, distribuciones, coherencia y validación).
 5. **`Declaracion_Uso_Etico_IA.md`:** Declaración de uso ético de inteligencia artificial conforme a la guía del curso.
-6. **`Historias_Usuario_Segunda_Entrega.md`:** Historias HU-17 a HU-26 con descripción detallada y criterios de aceptación para la segunda entrega.
+6. **`Historias_Usuario_Segunda_Entrega.md`:** Entregables E-17 a E-26 con descripción detallada y criterios de aceptación para la segunda entrega.
 7. **`Registro_Commits.md`:** Este documento de control y trazabilidad de versiones.
