@@ -24,10 +24,6 @@
     modelo: null,
     graficos: {}
   };
-  estado.archivo = leer('pt.base', null);
-  if (estado.archivo) {
-    try { estado.modelo = M.construirModelo(estado.archivo.hojas); } catch (e) { estado.archivo = null; }
-  }
 
 
   // ---------- Formato ----------
@@ -100,56 +96,21 @@
     lector.readAsArrayBuffer(archivo);
   }
 
-
+  // Primera versión: muestra las hojas leídas y cuántas filas tiene cada una.
   function cargar(nombre, hojas) {
-    var modelo = M.construirModelo(hojas);
-    renderCarga(nombre, modelo);
-    if (!modelo.produccion.length) {
-      irA('cargar');
-      avisar('No se encontraron registros válidos de producción. Revise las tablas reconocidas.', 'error');
-      return;
-    }
-    // Solo se guardan las hojas que la app usa.
-    var usadas = {};
-    Object.keys(modelo.tablas).forEach(function (rol) { var h = modelo.tablas[rol].hoja; usadas[h] = hojas[h]; });
-    estado.archivo = { nombre: nombre, cargado: new Date().toISOString(), hojas: usadas };
-    estado.modelo = modelo;
-    guardar('pt.base', estado.archivo);
-    actualizarCabecera();
-    avisar('Archivo validado: ' + Object.keys(modelo.tablas).length + ' tablas reconocidas y ' + modelo.errores.length + ' fila(s) con errores.');
-  }
-
-  function renderCarga(nombre, m) {
+    estado.archivo = { nombre: nombre, hojas: hojas };
     $('#carga-detalle').hidden = false;
     $('#carga-titulo').textContent = nombre;
-    $('#carga-estado').innerHTML = '<div class="estado-carga">' +
-      '<div><b class="ok">' + m.produccion.length + '</b>tandas o registros de producción</div>' +
-      '<div><b>' + m.paros.length + '</b>paros</div>' +
-      '<div><b>' + m.pedidos.length + '</b>pedidos</div>' +
-      '<div><b>' + m.manoObra.length + '</b>registros de mano de obra</div>' +
-      '<div><b class="' + (m.errores.length ? 'mal' : 'ok') + '">' + m.errores.length + '</b>filas con errores</div></div>' +
-      (m.faltantes && m.faltantes.length ? '<p class="mal">Falta: ' + esc(m.faltantes.join(', ')) + '.</p>' : '');
-    var uso = { pedidos: ' · necesaria para el SLA', ventas: ' · necesaria para el % no vendido', manoObra: ' · necesaria para la productividad' };
-    $('#carga-tablas').innerHTML = '<tr><th class="txt">Tabla</th><th class="txt">Hoja del archivo</th><th class="txt">Columnas reconocidas</th></tr>' +
-      M.TABLAS.map(function (def) {
-        var t = m.tablas[def.rol];
-        if (!t) return '<tr><td class="txt">' + esc(def.nombre) + '</td><td class="txt nota" colspan="2">No encontrada' + esc(uso[def.rol] || '') + '</td></tr>';
-        var cols = Object.keys(t.mapa).map(function (k) { return '«' + t.encabezados[t.mapa[k]] + '»'; });
-        return '<tr><td class="txt">' + esc(def.nombre) + '</td><td class="txt"><b>' + esc(t.hoja) + '</b></td><td class="txt envolver">' + esc(cols.join(' · ')) + '</td></tr>';
+    $('#carga-estado').innerHTML = '<p class="nota">El archivo se leyó en el navegador. Hojas encontradas:</p>';
+    $('#carga-tablas').innerHTML = '<tr><th class="txt">Hoja</th><th>Filas</th><th class="txt">Encabezados</th></tr>' +
+      Object.keys(hojas).map(function (n) {
+        var f = hojas[n];
+        return '<tr><td class="txt"><b>' + esc(n) + '</b></td><td>' + f.length + '</td><td class="txt envolver">' + esc((f[0] || []).join(' · ')) + '</td></tr>';
       }).join('');
-    $('#carga-errores-panel').hidden = !m.errores.length && !m.advertencias.length;
-    $('#carga-errores').innerHTML = m.errores.slice(0, 200).map(function (e) {
-      return '<li class="mal">' + esc(e.hoja) + ', fila ' + e.fila + ': ' + esc(e.mensaje) + '</li>';
-    }).concat(m.advertencias.map(function (a) { return '<li>' + esc(a) + '</li>'; })).join('');
+    actualizarCabecera();
+    avisar('Archivo leído: ' + Object.keys(hojas).length + ' hojas.');
   }
 
-  $('#btn-borrar').addEventListener('click', function () {
-    if (!estado.archivo) { avisar('No hay datos cargados.'); return; }
-    if (!confirm('¿Quitar los datos de «' + estado.archivo.nombre + '»?')) return;
-    estado.archivo = null; estado.modelo = null; borrar('pt.base');
-    $('#carga-detalle').hidden = true;
-    actualizarCabecera(); avisar('Datos quitados.');
-  });
 
   function usarEjemplo() {
     if (!window.DATOS_EJEMPLO) { avisar('No se encontraron los datos de ejemplo.', 'error'); return; }
