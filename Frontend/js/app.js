@@ -64,59 +64,8 @@
     $('#fuente-actual').textContent = /^Panadería San Nicolás/.test(nombre) ? nombre : 'Panadería San Nicolás · ' + nombre;
   }
 
-  // ---------- Carga del archivo ----------
-  var zona = $('#zona'), input = $('#archivo');
-  input.addEventListener('change', function () { if (input.files[0]) leerArchivo(input.files[0]); input.value = ''; });
-  ['dragenter', 'dragover'].forEach(function (ev) { zona.addEventListener(ev, function (e) { e.preventDefault(); zona.classList.add('encima'); }); });
-  ['dragleave', 'drop'].forEach(function (ev) { zona.addEventListener(ev, function (e) { e.preventDefault(); zona.classList.remove('encima'); }); });
-  zona.addEventListener('drop', function (e) { if (e.dataTransfer.files[0]) leerArchivo(e.dataTransfer.files[0]); });
-  document.addEventListener('dragover', function (e) { e.preventDefault(); });
-  document.addEventListener('drop', function (e) {
-    e.preventDefault();
-    if (!zona.contains(e.target) && e.dataTransfer.files[0]) leerArchivo(e.dataTransfer.files[0]);
-  });
-
-  function leerArchivo(archivo) {
-    if (!/\.(xlsx|xlsm|xls|ods)$/i.test(archivo.name)) { avisar('Use un libro de Excel (.xlsx) con la estructura de la plantilla.', 'error'); return; }
-    var lector = new FileReader();
-    lector.onerror = function () { avisar('No se pudo leer el archivo.', 'error'); };
-    lector.onload = function () {
-      try {
-        if (!window.XLSX) throw new Error('no se cargó la librería de Excel');
-        var libro = XLSX.read(new Uint8Array(lector.result), { type: 'array' });
-        var hojas = {};
-        libro.SheetNames.forEach(function (n) {
-          hojas[n] = XLSX.utils.sheet_to_json(libro.Sheets[n], { header: 1, raw: true, defval: null, blankrows: false });
-        });
-        cargar(archivo.name, hojas);
-      } catch (err) {
-        avisar('El archivo no se pudo interpretar: ' + err.message, 'error');
-      }
-    };
-    lector.readAsArrayBuffer(archivo);
-  }
-
-  // Primera versión: muestra las hojas leídas y cuántas filas tiene cada una.
-  function cargar(nombre, hojas) {
-    estado.archivo = { nombre: nombre, hojas: hojas };
-    $('#carga-detalle').hidden = false;
-    $('#carga-titulo').textContent = nombre;
-    $('#carga-estado').innerHTML = '<p class="nota">El archivo se leyó en el navegador. Hojas encontradas:</p>';
-    $('#carga-tablas').innerHTML = '<tr><th class="txt">Hoja</th><th>Filas</th><th class="txt">Encabezados</th></tr>' +
-      Object.keys(hojas).map(function (n) {
-        var f = hojas[n];
-        return '<tr><td class="txt"><b>' + esc(n) + '</b></td><td>' + f.length + '</td><td class="txt envolver">' + esc((f[0] || []).join(' · ')) + '</td></tr>';
-      }).join('');
-    actualizarCabecera();
-    avisar('Archivo leído: ' + Object.keys(hojas).length + ' hojas.');
-  }
 
 
-  function usarEjemplo() {
-    if (!window.DATOS_EJEMPLO) { avisar('No se encontraron los datos de ejemplo.', 'error'); return; }
-    cargar(DATOS_EJEMPLO.nombre, DATOS_EJEMPLO.hojas);
-  }
-  $('#btn-ejemplo').addEventListener('click', usarEjemplo);
 
   function filtros() {
     return {};

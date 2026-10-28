@@ -44,29 +44,13 @@
     <section id="vista-cargar" class="vista">
       <h2>Cargar datos</h2>
       <div class="panel">
-        <label class="zona" id="zona">
-          <input type="file" id="archivo" accept=".xlsx,.xls,.xlsm,.ods" hidden>
-          <strong>Arrastre aquí el archivo de Excel o haga clic para seleccionarlo</strong>
-          <span>Libro con las tablas Dim_Producto, Dim_Turno, Dim_MotivoParo, Fact_Produccion, Fact_Paros, Fact_Pedidos, Fact_Ventas y Fact_ManoObra.</span>
-        </label>
+        <p class="nota">Aquí se cargará el libro de Excel de la panadería (tablas Dim y Fact).</p>
         <div class="acciones">
-          <button class="btn" id="btn-ejemplo">Usar datos de ejemplo (septiembre 2026, simulados)</button>
           <a class="btn" id="btn-plantilla" href="datos/Base_Panaderia_Indicadores_plantilla.xlsx" download>Descargar plantilla de Excel</a>
           <a class="btn" id="btn-datos" href="datos/Base_Panaderia_Indicadores_2026-09.xlsx" download>Descargar datos simulados</a>
         </div>
-        <p class="nota">El archivo se procesa en su navegador; no se envía a ningún servidor.</p>
       </div>
 
-      <div id="carga-detalle" hidden>
-        <div class="panel">
-          <h3 id="carga-titulo">Archivo</h3>
-          <div id="carga-estado"></div>
-        </div>
-        <div class="panel">
-          <h3>Hojas del archivo</h3>
-          <div class="tabla-scroll"><table class="tabla" id="carga-tablas"></table></div>
-        </div>
-      </div>
     </section>
   </main>
 
@@ -75,9 +59,6 @@
     Juan Pablo · María Camila · Juan José · Iván Santiago
   </footer>
 
-  <script src="vendor/xlsx.full.min.js"></script>
-  <script src="datos/ejemplo-panaderia.js"></script>
-  <script src="js/lectura.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
