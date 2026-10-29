@@ -11,7 +11,15 @@
 
 ---
 
-## 1. Priorización MoSCoW
+## 📸 Resumen Visual Ejecutivo (Tablas y Kanban)
+
+A continuación se presentan las tablas organizadas visualmente con sus indicadores de esfuerzo, diseño del tablero y métricas de flujo:
+
+![Tablas y Tablero Kanban HU-18](img/hu18_tablas_visuales.png)
+
+---
+
+## 1. Priorización MoSCoW (Detalle en Texto)
 
 Con fecha fija, solo se negocia el alcance, nunca la calidad. Componentes de la segunda entrega:
 
