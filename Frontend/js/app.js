@@ -205,6 +205,9 @@
     tarjetas.push(tarjeta('SLA de pedidos (OTIF)', sla ? fmt.pct(sla.valor) : 'N/D', '',
       sla ? sla.aTiempo + ' de ' + sla.total + ' pedidos a tiempo y completos' + (filtros().turno ? ' (los pedidos no dependen del turno)' : '')
         : 'el archivo no trae pedidos', 'sla', sla && sla.valor));
+    var nv = a.noVendido;
+    tarjetas.push(tarjeta('% no vendido', nv && nv.valor != null ? fmt.pct(nv.valor) : 'N/D', '',
+      nv ? (nv.valor == null ? nv.motivo : fmt.num(nv.unidades) + ' trenzas buenas sin vender') : 'el archivo no trae ventas', 'noVendido', nv && nv.valor));
     tarjetas.push(tarjeta('Trenzas buenas', fmt.num(t.buenas), '', fmt.num(t.unidades) + ' producidas en ' + fmt.num(a.datos.produccion.length) + ' tandas'));
     $('#kpis').innerHTML = tarjetas.join('');
   }
