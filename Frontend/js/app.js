@@ -201,6 +201,10 @@
       tarjeta('Rendimiento', fmt.frac(t.R), '', fmt.num(t.idealMin / 60, 1) + ' h ideales de ' + fmt.num(t.producido / 60, 1) + ' h operativas', 'rendimiento', p100(t.R)),
       tarjeta('Calidad', fmt.frac(t.Q), '', fmt.num(t.defectuosas) + ' defectuosas de ' + fmt.num(t.unidades) + ' producidas', 'calidad', p100(t.Q))
     ];
+    var sla = a.sla;
+    tarjetas.push(tarjeta('SLA de pedidos (OTIF)', sla ? fmt.pct(sla.valor) : 'N/D', '',
+      sla ? sla.aTiempo + ' de ' + sla.total + ' pedidos a tiempo y completos' + (filtros().turno ? ' (los pedidos no dependen del turno)' : '')
+        : 'el archivo no trae pedidos', 'sla', sla && sla.valor));
     tarjetas.push(tarjeta('Trenzas buenas', fmt.num(t.buenas), '', fmt.num(t.unidades) + ' producidas en ' + fmt.num(a.datos.produccion.length) + ' tandas'));
     $('#kpis').innerHTML = tarjetas.join('');
   }

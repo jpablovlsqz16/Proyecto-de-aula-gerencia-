@@ -88,6 +88,14 @@
   }
 
 
+  // SLA (OTIF) = pedidos a tiempo y completos / total de pedidos.
+  function sla(pedidos) {
+    if (!pedidos.length) return null;
+    var a = pedidos.filter(function (p) { return p.cumple; }).length;
+    return { valor: a / pedidos.length * 100, aTiempo: a, total: pedidos.length,
+      tarde: pedidos.filter(function (p) { return !p.aTiempo; }).length,
+      incompletos: pedidos.filter(function (p) { return !p.completo; }).length };
+  }
 
 
 
@@ -105,12 +113,14 @@
       porTurno: agruparPor(d.registros, 'turno'),
       datos: d
     };
+    a.sla = sla(d.pedidos);
     return a;
   }
 
 
   return {
     calcularRegistros: calcularRegistros, agregar: agregar, agruparPor: agruparPor, analizar: analizar,
+    sla: sla,
     todos: todos
   };
 });
