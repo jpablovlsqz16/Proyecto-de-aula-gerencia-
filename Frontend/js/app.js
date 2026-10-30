@@ -103,6 +103,7 @@
 
   function cargar(nombre, hojas) {
     var modelo = M.construirModelo(hojas);
+    modelo.registros = K.calcularRegistros(modelo);
     renderCarga(nombre, modelo);
     if (!modelo.produccion.length) {
       irA('cargar');
@@ -116,7 +117,9 @@
     estado.modelo = modelo;
     guardar('pt.base', estado.archivo);
     actualizarCabecera();
-    avisar('Archivo validado: ' + Object.keys(modelo.tablas).length + ' tablas reconocidas y ' + modelo.errores.length + ' fila(s) con errores.');
+    irA('tablero');
+    avisar('Tablero generado: ' + modelo.registros.length + ' turnos, ' + modelo.produccion.length + ' registros de producción y ' +
+      modelo.paros.length + ' paros' + (modelo.errores.length ? '; ' + modelo.errores.length + ' fila(s) con errores (ver «Cargar datos»)' : '') + '.');
   }
 
   function renderCarga(nombre, m) {
@@ -156,6 +159,7 @@
     cargar(DATOS_EJEMPLO.nombre, DATOS_EJEMPLO.hojas);
   }
   $('#btn-ejemplo').addEventListener('click', usarEjemplo);
+  $('#btn-ejemplo-vacio').addEventListener('click', usarEjemplo);
 
   function filtros() {
     return {};
@@ -177,7 +181,28 @@
   }
 
   function renderTablero() {
-    return;
+    var hay = !!estado.modelo;
+    $('#tablero-vacio').hidden = hay;
+    $('#tablero').hidden = !hay;
+    if (!hay) return;
+    if (!estado.modelo.registros) estado.modelo.registros = K.calcularRegistros(estado.modelo);
+    var a = K.analizar(estado.modelo, filtros()), t = a.total;
+    var p100 = function (v) { return v == null ? null : v * 100; };
+
+    $('#resumen').textContent = t.registros
+      ? t.registros + ' turnos · ' + a.porFecha.length + ' día(s)' +
+        (a.porFecha.length ? ' (' + a.porFecha[0].clave + ' a ' + a.porFecha[a.porFecha.length - 1].clave + ')' : '') +
+        ' · ' + fmt.num(t.programado / 60, 1) + ' h programadas de horno'
+      : 'Ningún registro cumple los filtros seleccionados.';
+
+    var tarjetas = [
+      tarjeta('OEE del horno', fmt.frac(t.oee), '', 'disponibilidad × rendimiento × calidad', 'oee', p100(t.oee)),
+      tarjeta('Disponibilidad', fmt.frac(t.A), '', fmt.num(t.paros / 60, 1) + ' h de paros no planeados de ' + fmt.num(t.programado / 60, 1) + ' h', 'disponibilidad', p100(t.A)),
+      tarjeta('Rendimiento', fmt.frac(t.R), '', fmt.num(t.idealMin / 60, 1) + ' h ideales de ' + fmt.num(t.producido / 60, 1) + ' h operativas', 'rendimiento', p100(t.R)),
+      tarjeta('Calidad', fmt.frac(t.Q), '', fmt.num(t.defectuosas) + ' defectuosas de ' + fmt.num(t.unidades) + ' producidas', 'calidad', p100(t.Q))
+    ];
+    tarjetas.push(tarjeta('Trenzas buenas', fmt.num(t.buenas), '', fmt.num(t.unidades) + ' producidas en ' + fmt.num(a.datos.produccion.length) + ' tandas'));
+    $('#kpis').innerHTML = tarjetas.join('');
   }
 
 

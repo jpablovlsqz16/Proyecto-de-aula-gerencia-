@@ -226,12 +226,19 @@ a.btn { text-decoration: none; display: inline-block; }
     <section id="vista-tablero" class="vista activa">
       <div id="tablero-vacio" class="vacio">
         <h2>Aún no hay datos para el tablero</h2>
-        <p>El tablero se genera a partir del libro de Excel con la estructura de la plantilla (tablas Dim y Fact). Por ahora la aplicación lee y valida el archivo en «Cargar datos».</p>
+        <p>Cargue el archivo de Excel con la estructura de la plantilla (tablas Dim y Fact). El tablero se genera automáticamente.</p>
         <div class="acciones">
           <button class="btn primario" data-ir="cargar">Cargar archivo</button>
+          <button class="btn" id="btn-ejemplo-vacio">Usar datos de ejemplo (septiembre 2026, simulados)</button>
         </div>
       </div>
 
+      <div id="tablero" hidden>
+
+        <p class="resumen-filtro" id="resumen"></p>
+        <div class="kpis" id="kpis"></div>
+
+      </div>
     </section>
 
     <!-- ============ CARGAR DATOS ============ -->
@@ -247,8 +254,9 @@ a.btn { text-decoration: none; display: inline-block; }
           <button class="btn" id="btn-ejemplo">Usar datos de ejemplo (septiembre 2026, simulados)</button>
           <a class="btn" id="btn-plantilla" href="https://github.com/jpablovlsqz16/Proyecto-de-aula-gerencia-/raw/main/Frontend/datos/Base_Panaderia_Indicadores_plantilla.xlsx" target="_blank" rel="noopener">Descargar plantilla de Excel</a>
           <a class="btn" id="btn-datos" href="https://github.com/jpablovlsqz16/Proyecto-de-aula-gerencia-/raw/main/Frontend/datos/Base_Panaderia_Indicadores_2026-09.xlsx" target="_blank" rel="noopener">Descargar datos simulados</a>
+          <button class="btn peligro" id="btn-borrar">Quitar datos cargados</button>
         </div>
-        <p class="nota">El archivo se procesa en su navegador; no se envía a ningún servidor.</p>
+        <p class="nota">El archivo se procesa en su navegador; no se envía a ningún servidor. Las tablas se reconocen por los nombres de sus columnas (no por el nombre de la hoja), en español o en inglés. Ver el diccionario de datos en <code>Docs/Diccionario_Datos.md</code>.</p>
       </div>
 
       <div id="carga-detalle" hidden>
@@ -257,8 +265,12 @@ a.btn { text-decoration: none; display: inline-block; }
           <div id="carga-estado"></div>
         </div>
         <div class="panel">
-          <h3>Hojas del archivo</h3>
+          <h3>Tablas reconocidas</h3>
           <div class="tabla-scroll"><table class="tabla" id="carga-tablas"></table></div>
+        </div>
+        <div class="panel" id="carga-errores-panel" hidden>
+          <h3>Filas no cargadas y advertencias</h3>
+          <ul id="carga-errores" class="lista-errores"></ul>
         </div>
       </div>
     </section>
@@ -348,6 +360,436 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
 </script>
   <script>
 /*
+ * modelo.js — Lee el libro de Excel como un modelo relacional (tablas Dim y Fact).
+ *
+ * Reconoce cada tabla por los nombres de sus columnas (no por el nombre de la hoja),
+ * valida cada fila y une los hechos con las dimensiones. No calcula indicadores:
+ * eso lo hace indicadores.js.
+ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./lectura.js'));
+  else root.Modelo = factory(root.Lectura);
+})(typeof self !== 'undefined' ? self : this, function (I) {
+  'use strict';
+
+  // Nombre del equipo cuando el archivo no trae columna de máquina (un solo horno).
+  var EQUIPO = 'Horno';
+
+  var CAMPOS = {
+    maquina: ['machine id', 'maquina', 'id maquina', 'maquina id', 'codigo maquina', 'equipo', 'id equipo', 'horno', '=machine'],
+    nombreMaquina: ['machine name', 'nombre maquina', 'nombre equipo', 'descripcion maquina', 'nombre del equipo'],
+    linea: ['line', 'linea', 'linea de produccion', '=area'],
+    fecha: ['shift date', 'fecha', 'fecha turno', 'fecha de produccion', '=date', '=dia'],
+    turno: ['shift id', 'turno', 'id turno', '=shift', 'codigo turno'],
+    producto: ['product id', 'producto', 'id producto', 'referencia', 'sku', 'codigo producto'],
+    nombreProducto: ['product name', 'nombre producto', 'descripcion producto', 'nombre del producto'],
+    orden: ['order id', 'orden', 'orden de produccion', 'id orden', 'pedido', 'id pedido', 'numero pedido'],
+    unidades: ['units produced', 'unidades producidas', 'unidades totales', 'producidas', 'producidos', 'cantidad producida', 'panes producidos', 'unidades'],
+    defectuosas: ['units defective', 'unidades defectuosas', 'defectuosas', 'defectuosos', 'panes defectuosos', 'rechazos', 'rechazadas', 'no conformes'],
+    duracion: ['duration min', 'duracion', 'duracion min', 'minutos', 'tiempo min', 'duracion minutos'],
+    inicio: ['timestamp start', '=inicio', 'hora inicio', 'fecha hora inicio', '=start'],
+    fin: ['timestamp end', '=fin', 'hora fin', 'fecha hora fin', '=end'],
+    operador: ['operator id', 'operador', 'operario', 'id operador', 'id operario', 'operario id', 'panadero'],
+    nombreOperador: ['operator name', 'nombre operador', 'nombre operario', '=nombre'],
+    horas: ['horas trabajadas', 'horas hombre', 'horas laboradas', 'hours worked', '=horas'],
+    asistio: ['asistio', 'asistencia', 'attended'],
+    motivo: ['reason id', 'motivo', 'id motivo', 'causa', 'codigo paro', 'motivo paro', 'codigo motivo'],
+    nombreMotivo: ['reason name', 'nombre motivo', 'descripcion motivo', 'descripcion paro', 'nombre causa'],
+    tipoMotivo: ['=type', '=tipo', 'tipo paro', '=clase'],
+    excluido: ['ppt excluded', 'excluidos', 'excluido', 'excluir', 'excluido del tiempo programado', 'excluir tiempo programado'],
+    cicloSeg: ['std cycle time sec', 'tiempo ciclo', 'tiempo de ciclo', 'tiempo ciclo seg', 'ciclo seg', 'tiempo ciclo estandar', 'tiempo estandar seg'],
+    cicloMin: ['tiempo horneado min', 'tiempo de horneado', 'tiempo horneado', 'tiempo de horneado min', 'tiempo ciclo min', 'tiempo de ciclo min'],
+    unidadesCiclo: ['std units per cycle', 'unidades por ciclo', 'und por ciclo', 'unidades ciclo', 'panes por ciclo', 'panes por tanda', 'unidades por tanda', 'trenzas por tanda'],
+    idealUnit: ['tiempo ideal unitario', 'ideal unit sec', 'tiempo ideal unitario seg'],
+    duracionTurno: ['duration min', 'duracion', 'duracion turno', 'minutos turno', 'duracion min'],
+    descanso: ['descanso min', 'descanso', 'minutos descanso', 'descanso minutos'],
+    fechaCompromiso: ['due date', 'fecha hora compromiso', 'fecha compromiso', 'hora compromiso', 'fecha prometida', 'promised date', 'fecha requerida', 'fecha pactada', 'fecha limite'],
+    fechaEntrega: ['delivery date', 'delivered date', 'fecha hora entrega', 'fecha entrega', 'hora entrega', 'fecha de entrega', 'fecha real entrega', 'fecha entregada'],
+    cantidadPedida: ['qty ordered', 'cantidad pedida', 'unidades pedidas', 'ordered units', 'cantidad solicitada'],
+    cantidadEntregada: ['qty delivered', 'cantidad entregada', 'unidades entregadas', 'delivered units'],
+    vendidas: ['units sold', 'unidades vendidas', 'vendidas', 'cantidad vendida', 'ventas unidades', '=ventas'],
+    noVendidas: ['units unsold', 'unidades no vendidas', 'no vendidas', 'sobrantes', 'devoluciones', 'unidades devueltas']
+  };
+
+  // Tablas: campos obligatorios, campos que no deben estar (para no confundir hechos con dimensiones) y opcionales.
+  var TABLAS = [
+    { rol: 'produccion', nombre: 'Producción (hechos)', req: ['fecha', 'turno', 'unidades'], no: [],
+      opc: ['maquina', 'defectuosas', 'producto', 'orden', 'duracion', 'inicio', 'fin', 'operador', 'idealUnit', 'noVendidas'] },
+    { rol: 'paros', nombre: 'Paros (hechos)', req: ['fecha', 'turno', 'motivo', 'duracion'], no: ['unidades'],
+      opc: ['maquina', 'inicio', 'fin', 'excluido'] },
+    { rol: 'manoObra', nombre: 'Mano de obra (hechos)', req: ['fecha', 'turno', 'horas'], no: ['unidades', 'motivo'],
+      opc: ['operador', 'asistio'] },
+    { rol: 'pedidos', nombre: 'Pedidos (SLA)', req: ['orden', 'fechaCompromiso', 'fechaEntrega'], no: [],
+      opc: ['fecha', 'producto', 'cantidadPedida', 'cantidadEntregada'] },
+    { rol: 'ventas', nombre: 'Ventas', req: ['vendidas'], no: ['maquina', 'turno'], opc: ['fecha', 'producto', 'noVendidas'] },
+    { rol: 'producto', nombre: 'Productos', req: ['producto'], alguno: ['cicloSeg', 'cicloMin'], no: ['fecha', 'maquina'],
+      opc: ['nombreProducto', 'unidadesCiclo', 'cicloSeg', 'cicloMin'] },
+    { rol: 'turno', nombre: 'Turnos', req: ['turno', 'duracionTurno'], no: ['maquina', 'fecha'], opc: ['descanso'] },
+    { rol: 'motivo', nombre: 'Motivos de paro', req: ['motivo'], alguno: ['excluido', 'tipoMotivo'], no: ['maquina', 'fecha'], opc: ['nombreMotivo', 'tipoMotivo', 'excluido'] },
+    { rol: 'maquina', nombre: 'Máquinas', req: ['maquina'], alguno: ['nombreMaquina', 'linea'], no: ['fecha', 'turno'], opc: ['nombreMaquina', 'linea'] },
+    { rol: 'operador', nombre: 'Operadores', req: ['operador', 'nombreOperador'], no: ['fecha', 'maquina'], opc: [] }
+  ];
+
+  function puntaje(h, sinonimos) {
+    if (!h) return 0;
+    var mejor = 0;
+    sinonimos.forEach(function (s) {
+      var exacto = s.charAt(0) === '=';           // '=dia': solo coincide con el encabezado completo
+      var sn = I.normalizar(exacto ? s.slice(1) : s);
+      if (h === sn) mejor = Math.max(mejor, 100);
+      else if (exacto) return;
+      else if ((' ' + h + ' ').indexOf(' ' + sn + ' ') !== -1) mejor = Math.max(mejor, 40 + sn.length);
+    });
+    return mejor;
+  }
+
+  // Asigna columnas a los campos de una tabla (cada columna se usa una vez, mayor puntaje primero).
+  function mapear(encabezados, campos) {
+    var cand = [];
+    var norm = encabezados.map(function (h) { return I.normalizar(h); });
+    norm.forEach(function (h, col) {
+      if (h.indexOf('%') !== -1) return;
+      campos.forEach(function (c) { var p = puntaje(h, CAMPOS[c]); if (p) cand.push({ c: c, col: col, p: p }); });
+    });
+    cand.sort(function (a, b) { return b.p - a.p; });
+    var mapa = {}, usadas = {};
+    cand.forEach(function (k) { if (mapa[k.c] === undefined && !usadas[k.col]) { mapa[k.c] = k.col; usadas[k.col] = true; } });
+    return mapa;
+  }
+
+  function evaluarTabla(filas, def) {
+    var todos = def.req.concat(def.opc, def.alguno || [], def.no);
+    var mejor = null;
+    for (var i = 0; i < Math.min(filas.length, 10); i++) {
+      var enc = (filas[i] || []).map(function (h) { return h == null ? '' : String(h).trim(); });
+      var mapa = mapear(enc, todos.filter(function (c, j, a) { return a.indexOf(c) === j; }));
+      var ok = def.req.every(function (c) { return mapa[c] !== undefined; }) &&
+        def.no.every(function (c) { return mapa[c] === undefined; }) &&
+        (!def.alguno || def.alguno.some(function (c) { return mapa[c] !== undefined; }));
+      if (!ok) continue;
+      var n = Object.keys(mapa).length;
+      if (!mejor || n > mejor.n) mejor = { fila: i, mapa: mapa, n: n, encabezados: enc };
+    }
+    return mejor;
+  }
+
+  // Identifica qué hoja cumple cada rol. Devuelve { rol: { hoja, fila, mapa, encabezados } }.
+  function detectarTablas(hojas) {
+    var usadas = {}, res = {};
+    TABLAS.forEach(function (def) {
+      var mejor = null;
+      Object.keys(hojas).forEach(function (nombre) {
+        if (usadas[nombre]) return;
+        var ev = evaluarTabla(hojas[nombre] || [], def);
+        if (ev && (!mejor || ev.n > mejor.n)) { mejor = ev; mejor.hoja = nombre; }
+      });
+      if (mejor) { res[def.rol] = mejor; usadas[mejor.hoja] = true; }
+    });
+    return res;
+  }
+
+  // Es un libro relacional si tiene producción y al menos una tabla relacionada.
+  function esRelacional(hojas) {
+    var t = detectarTablas(hojas);
+    return !!(t.produccion && (t.paros || t.turno || t.producto));
+  }
+
+  function texto(v) { return v == null ? '' : String(v).trim(); }
+  function siNo(v) {
+    if (v === true || v === 1) return true;
+    if (v === false || v === 0) return false;
+    var s = I.normalizar(v);
+    if (['y', 'yes', 's', 'si', 'true', 'x', 'verdadero', '1'].indexOf(s) !== -1) return true;
+    if (['n', 'no', 'false', 'falso', '0'].indexOf(s) !== -1) return false;
+    return null;
+  }
+  // Minutos desde el origen para fechas-hora (número de serie de Excel o texto ISO).
+  function aMinutos(v) {
+    if (typeof v === 'number') return v * 1440;
+    if (v instanceof Date) return v.getTime() / 60000;
+    var t = Date.parse(String(v || '').replace(' ', 'T'));
+    return isNaN(t) ? null : t / 60000;
+  }
+
+  function filasDe(hojas, t) {
+    if (!t) return [];
+    var filas = hojas[t.hoja].slice(t.fila + 1);
+    return filas.map(function (f, i) { return { f: f, n: t.fila + 2 + i }; })
+      .filter(function (x) { return x.f && x.f.some(function (c) { return c !== null && c !== undefined && String(c).trim() !== ''; }); });
+  }
+  function celda(x, t, campo) { return t.mapa[campo] === undefined ? undefined : x.f[t.mapa[campo]]; }
+
+  /*
+   * Construye el modelo a partir de las hojas: valida filas y resuelve las relaciones.
+   */
+  function construirModelo(hojas) {
+    var t = detectarTablas(hojas);
+    var m = { tablas: t, maquinas: {}, productos: {}, turnos: {}, motivos: {}, operadores: {},
+      produccion: [], paros: [], pedidos: [], ventas: [], manoObra: [], errores: [], advertencias: [] };
+    function error(hoja, n, msg) { m.errores.push({ hoja: hoja, fila: n, mensaje: msg }); }
+    var avisos = {};
+    function aviso(msg) { if (!avisos[msg]) { avisos[msg] = true; m.advertencias.push(msg); } }
+
+    if (!t.produccion) { m.faltantes = ['hoja de producción con fecha, turno y unidades producidas']; return m; }
+    m.faltantes = [];
+
+    filasDe(hojas, t.maquina).forEach(function (x) {
+      var id = texto(celda(x, t.maquina, 'maquina'));
+      if (id) m.maquinas[id] = { id: id, nombre: texto(celda(x, t.maquina, 'nombreMaquina')) || id, linea: texto(celda(x, t.maquina, 'linea')) };
+    });
+    filasDe(hojas, t.producto).forEach(function (x) {
+      var id = texto(celda(x, t.producto, 'producto'));
+      // Tiempo de ciclo en segundos (cycle time) o en minutos (tiempo de horneado de la tanda).
+      var ciclo = I.aNumero(celda(x, t.producto, 'cicloSeg'));
+      if (ciclo === null) { var cm = I.aNumero(celda(x, t.producto, 'cicloMin')); ciclo = cm === null ? null : cm * 60; }
+      var porCiclo = I.aNumero(celda(x, t.producto, 'unidadesCiclo'));
+      if (!id) return;
+      if (!(ciclo > 0)) { error(t.producto.hoja, x.n, 'tiempo de ciclo no válido para ' + id); return; }
+      m.productos[id] = { id: id, nombre: texto(celda(x, t.producto, 'nombreProducto')) || id, cicloSeg: ciclo,
+        unidadesCiclo: porCiclo > 0 ? porCiclo : 1, idealSegUnidad: ciclo / (porCiclo > 0 ? porCiclo : 1) };
+    });
+    filasDe(hojas, t.turno).forEach(function (x) {
+      var id = texto(celda(x, t.turno, 'turno'));
+      var d = I.aNumero(celda(x, t.turno, 'duracionTurno'));
+      var descanso = I.aNumero(celda(x, t.turno, 'descanso')) || 0;
+      if (id && d > 0) m.turnos[id] = { id: id, duracion: d, descanso: descanso };
+    });
+    filasDe(hojas, t.motivo).forEach(function (x) {
+      var id = texto(celda(x, t.motivo, 'motivo'));
+      if (!id) return;
+      var tipo = texto(celda(x, t.motivo, 'tipoMotivo'));
+      var exc = siNo(celda(x, t.motivo, 'excluido'));
+      m.motivos[id] = { id: id, nombre: texto(celda(x, t.motivo, 'nombreMotivo')) || id, tipo: tipo, excluido: exc === null ? false : exc };
+    });
+    filasDe(hojas, t.operador).forEach(function (x) {
+      var id = texto(celda(x, t.operador, 'operador'));
+      if (id) m.operadores[id] = { id: id, nombre: texto(celda(x, t.operador, 'nombreOperador')) || id };
+    });
+
+    var P = t.produccion;
+    filasDe(hojas, P).forEach(function (x) {
+      var maquina = P.mapa.maquina === undefined ? EQUIPO : texto(celda(x, P, 'maquina'));
+      var fecha = I.aFecha(celda(x, P, 'fecha')), turno = texto(celda(x, P, 'turno'));
+      var unidades = I.aNumero(celda(x, P, 'unidades'));
+      var defect = P.mapa.defectuosas === undefined ? 0 : I.aNumero(celda(x, P, 'defectuosas'));
+      var dur = I.aNumero(celda(x, P, 'duracion'));
+      var e = [];
+      if (!maquina) e.push('falta la máquina');
+      if (!fecha) e.push('fecha no válida');
+      if (!turno) e.push('falta el turno');
+      if (unidades === null || unidades < 0) e.push('unidades producidas no válidas');
+      if (defect === null || defect < 0) e.push('unidades defectuosas no válidas');
+      if (unidades !== null && defect !== null && defect > unidades) e.push('las defectuosas superan a las producidas');
+      if (dur !== null && dur < 0) e.push('duración negativa');
+      if (e.length) { error(P.hoja, x.n, e.join('; ')); return; }
+      var producto = texto(celda(x, P, 'producto'));
+      var idealUnit = null;
+      if (m.productos[producto]) idealUnit = m.productos[producto].idealSegUnidad;
+      else {
+        var iu = I.aNumero(celda(x, P, 'idealUnit'));
+        if (iu > 0) idealUnit = iu;
+        else aviso('Producto «' + (producto || 'sin código') + '» sin tiempo de ciclo: sus unidades no suman tiempo ideal (afecta el rendimiento).');
+      }
+      if (t.maquina && !m.maquinas[maquina]) aviso('La máquina «' + maquina + '» no está en la tabla de máquinas.');
+      var inicio = aMinutos(celda(x, P, 'inicio')), fin = aMinutos(celda(x, P, 'fin'));
+      if (dur === null && inicio !== null && fin !== null) dur = fin - inicio;
+      m.produccion.push({ maquina: maquina, fecha: fecha, turno: turno, producto: producto, orden: texto(celda(x, P, 'orden')),
+        operador: texto(celda(x, P, 'operador')), unidades: unidades, defectuosas: defect, buenas: unidades - defect,
+        duracion: dur, idealSeg: idealUnit === null ? 0 : idealUnit * unidades, inicio: inicio, fin: fin,
+        noVendidas: I.aNumero(celda(x, P, 'noVendidas')) });
+    });
+
+    var D = t.paros;
+    filasDe(hojas, D).forEach(function (x) {
+      var maquina = D.mapa.maquina === undefined ? EQUIPO : texto(celda(x, D, 'maquina'));
+      var fecha = I.aFecha(celda(x, D, 'fecha')), turno = texto(celda(x, D, 'turno'));
+      var motivo = texto(celda(x, D, 'motivo')), dur = I.aNumero(celda(x, D, 'duracion'));
+      var e = [];
+      if (!maquina) e.push('falta la máquina');
+      if (!fecha) e.push('fecha no válida');
+      if (!turno) e.push('falta el turno');
+      if (dur === null || dur < 0) e.push('duración no válida');
+      if (e.length) { error(D.hoja, x.n, e.join('; ')); return; }
+      // Igual que la hoja de referencia: el motivo decide si el paro se excluye del tiempo programado.
+      // Un motivo que no está en la tabla de motivos no cuenta en ninguno de los dos grupos.
+      var excluido;
+      if (m.motivos[motivo]) excluido = m.motivos[motivo].excluido;
+      else if (!t.motivo) { var v = siNo(celda(x, D, 'excluido')); excluido = v === null ? false : v; }
+      else { excluido = null; aviso('Motivo de paro «' + motivo + '» no está en la tabla de motivos: no se cuenta como paro ni como excluido.'); }
+      m.paros.push({ maquina: maquina, fecha: fecha, turno: turno, motivo: motivo, duracion: dur, excluido: excluido,
+        inicio: aMinutos(celda(x, D, 'inicio')), fin: aMinutos(celda(x, D, 'fin')) });
+    });
+
+    // SLA (OTIF): a tiempo (entrega ≤ compromiso, con fecha y hora) y completo (entregada ≥ pedida).
+    var Pe = t.pedidos;
+    filasDe(hojas, Pe).forEach(function (x) {
+      var comp = aMinutos(celda(x, Pe, 'fechaCompromiso')), ent = aMinutos(celda(x, Pe, 'fechaEntrega'));
+      var fecha = I.aFecha(celda(x, Pe, 'fecha')) || I.aFecha(celda(x, Pe, 'fechaCompromiso'));
+      if (comp === null || !fecha) { error(Pe.hoja, x.n, 'fecha de compromiso no válida'); return; }
+      var ped = I.aNumero(celda(x, Pe, 'cantidadPedida')), entr = I.aNumero(celda(x, Pe, 'cantidadEntregada'));
+      if (ped !== null && ped <= 0) { error(Pe.hoja, x.n, 'cantidad pedida no válida'); return; }
+      if (entr !== null && entr < 0) { error(Pe.hoja, x.n, 'cantidad entregada negativa'); return; }
+      var aTiempo = ent !== null && ent <= comp;
+      var completo = ped === null || entr === null ? true : entr >= ped;
+      m.pedidos.push({ orden: texto(celda(x, Pe, 'orden')), fecha: fecha, aTiempo: aTiempo, completo: completo,
+        cumple: aTiempo && completo, entregado: ent !== null });
+    });
+
+    var V = t.ventas;
+    filasDe(hojas, V).forEach(function (x) {
+      var vend = I.aNumero(celda(x, V, 'vendidas'));
+      if (vend === null || vend < 0) { error(V.hoja, x.n, 'unidades vendidas no válidas'); return; }
+      m.ventas.push({ fecha: I.aFecha(celda(x, V, 'fecha')), producto: texto(celda(x, V, 'producto')), vendidas: vend,
+        noVendidas: I.aNumero(celda(x, V, 'noVendidas')) });
+    });
+
+    var MO = t.manoObra;
+    filasDe(hojas, MO).forEach(function (x) {
+      var fecha = I.aFecha(celda(x, MO, 'fecha')), turno = texto(celda(x, MO, 'turno')), horas = I.aNumero(celda(x, MO, 'horas'));
+      var e = [];
+      if (!fecha) e.push('fecha no válida');
+      if (!turno) e.push('falta el turno');
+      if (horas === null || horas < 0 || horas > 24) e.push('horas trabajadas no válidas');
+      if (e.length) { error(MO.hoja, x.n, e.join('; ')); return; }
+      if (horas > 8) aviso('Hay registros de mano de obra con más de 8 horas por persona.');
+      m.manoObra.push({ fecha: fecha, turno: turno, operador: texto(celda(x, MO, 'operador')), horas: horas,
+        asistio: MO.mapa.asistio === undefined ? horas > 0 : siNo(celda(x, MO, 'asistio')) !== false });
+    });
+
+    if (!t.turno) aviso('No hay tabla de turnos: la duración de cada turno se toma del primer al último registro de tiempo.');
+    if (!t.producto && P.mapa.idealUnit === undefined) aviso('No hay tabla de productos con tiempo de ciclo: el rendimiento no se puede calcular.');
+    if (!t.paros) aviso('No hay hoja de paros: la disponibilidad se calcula con el tiempo de los registros de producción.');
+    return m;
+  }
+
+  return {
+    TABLAS: TABLAS, CAMPOS: CAMPOS, EQUIPO: EQUIPO,
+    detectarTablas: detectarTablas, esRelacional: esRelacional, construirModelo: construirModelo
+  };
+});
+
+</script>
+  <script>
+/*
+ * indicadores.js — Indicadores de las fichas técnicas a partir del modelo (modelo.js).
+ *
+ * Por turno (y por equipo, si hay varios): tiempo programado = duración − descanso − paros
+ * excluidos; tiempo operativo = programado − paros no planeados; tiempo ideal = Σ unidades ×
+ * tiempo de horneado ÷ unidades por tanda. Disponibilidad, rendimiento, calidad y OEE.
+ * Los consolidados suman tiempos y unidades antes de dividir (no se promedian porcentajes).
+ */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.Indicadores = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  function clave(r) { return r.maquina + '|' + r.fecha + '|' + r.turno; }
+
+  // Un registro por máquina–fecha–turno, con las columnas de la hoja OEE de referencia.
+  function calcularRegistros(m) {
+    var grupos = {}, orden = [];
+    function g(r) {
+      var k = clave(r);
+      if (!grupos[k]) {
+        grupos[k] = { maquina: r.maquina, fecha: r.fecha, turno: r.turno, excluidos: 0, paros: 0, unidades: 0, defectuosas: 0,
+          idealSeg: 0, durProd: 0, minIni: null, maxFin: null };
+        orden.push(k);
+      }
+      return grupos[k];
+    }
+    function span(x, r) {
+      if (r.inicio != null) x.minIni = x.minIni === null ? r.inicio : Math.min(x.minIni, r.inicio);
+      if (r.fin != null) x.maxFin = x.maxFin === null ? r.fin : Math.max(x.maxFin, r.fin);
+    }
+    m.produccion.forEach(function (r) {
+      var x = g(r); x.unidades += r.unidades; x.defectuosas += r.defectuosas; x.idealSeg += r.idealSeg; x.durProd += r.duracion || 0; span(x, r);
+    });
+    m.paros.forEach(function (r) {
+      var x = g(r);
+      if (r.excluido === true) x.excluidos += r.duracion; else if (r.excluido === false) x.paros += r.duracion;
+      span(x, r);
+    });
+    return orden.map(function (k) {
+      var x = grupos[k];
+      var base;
+      if (m.turnos[x.turno]) base = m.turnos[x.turno].duracion - m.turnos[x.turno].descanso;
+      else if (x.minIni !== null && x.maxFin !== null) base = x.maxFin - x.minIni;
+      else base = x.durProd + x.paros + x.excluidos;
+      var programado = base - x.excluidos;
+      var producido = m.tablas.paros ? programado - x.paros : (x.durProd || programado);
+      var maq = m.maquinas[x.maquina];
+      var r = {
+        maquina: x.maquina, linea: maq ? maq.linea : '', fecha: x.fecha, turno: x.turno,
+        base: base, excluidos: x.excluidos, programado: programado, paros: x.paros, producido: producido,
+        unidades: x.unidades, defectuosas: x.defectuosas, buenas: x.unidades - x.defectuosas, idealMin: x.idealSeg / 60
+      };
+      Object.assign(r, razones(r));
+      return r;
+    }).sort(function (a, b) {
+      return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : a.turno < b.turno ? -1 : a.turno > b.turno ? 1 : a.maquina < b.maquina ? -1 : a.maquina > b.maquina ? 1 : 0;
+    });
+  }
+
+  function razones(s) {
+    var A = s.programado > 0 ? s.producido / s.programado : null;
+    var R = s.producido > 0 && s.idealMin > 0 ? s.idealMin / s.producido : null;
+    var Q = s.unidades > 0 ? s.buenas / s.unidades : null;
+    return { A: A, R: R, Q: Q, oee: A !== null && R !== null && Q !== null ? A * R * Q : null };
+  }
+
+  // Suma componentes y recalcula las razones (así el consolidado coincide con los totales).
+  function agregar(registros) {
+    var s = { registros: registros.length, base: 0, excluidos: 0, programado: 0, paros: 0, producido: 0, unidades: 0, defectuosas: 0, buenas: 0, idealMin: 0 };
+    registros.forEach(function (r) {
+      ['base', 'excluidos', 'programado', 'paros', 'producido', 'unidades', 'defectuosas', 'buenas', 'idealMin'].forEach(function (k) { s[k] += r[k]; });
+    });
+    Object.assign(s, razones(s));
+    return s;
+  }
+
+  function agruparPor(registros, campo) {
+    var g = {}, orden = [];
+    registros.forEach(function (r) { var k = r[campo]; if (!g[k]) { g[k] = []; orden.push(k); } g[k].push(r); });
+    return orden.sort().map(function (k) { var a = agregar(g[k]); a.clave = k; return a; });
+  }
+
+  // Todos los datos del modelo, sin filtrar.
+  function todos(m) {
+    return { registros: m.registros, produccion: m.produccion, paros: m.paros, manoObra: m.manoObra, pedidos: m.pedidos, ventas: m.ventas };
+  }
+
+
+
+
+
+
+  function analizar(m, filtros) {
+    filtros = filtros || {};
+    if (!m.registros) m.registros = calcularRegistros(m);
+    var d = todos(m);
+    var total = agregar(d.registros);
+    var porFecha = agruparPor(d.registros, 'fecha');
+    var a = {
+      total: total,
+      porFecha: porFecha,
+      porMaquina: agruparPor(d.registros, 'maquina'),
+      porTurno: agruparPor(d.registros, 'turno'),
+      datos: d
+    };
+    return a;
+  }
+
+
+  return {
+    calcularRegistros: calcularRegistros, agregar: agregar, agruparPor: agruparPor, analizar: analizar,
+    todos: todos
+  };
+});
+
+</script>
+  <script>
+/*
  * app.js — Interfaz del tablero de indicadores del pan trenza (Panadería San Nicolás).
  * Lee el libro de Excel (SheetJS), arma el modelo (modelo.js), calcula los indicadores
  * (indicadores.js) y dibuja tarjetas, gráficos y hallazgos (Chart.js).
@@ -373,6 +815,10 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
     modelo: null,
     graficos: {}
   };
+  estado.archivo = leer('pt.base', null);
+  if (estado.archivo) {
+    try { estado.modelo = M.construirModelo(estado.archivo.hojas); } catch (e) { estado.archivo = null; }
+  }
 
 
   // ---------- Formato ----------
@@ -445,27 +891,66 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
     lector.readAsArrayBuffer(archivo);
   }
 
-  // Primera versión: muestra las hojas leídas y cuántas filas tiene cada una.
+
   function cargar(nombre, hojas) {
-    estado.archivo = { nombre: nombre, hojas: hojas };
-    $('#carga-detalle').hidden = false;
-    $('#carga-titulo').textContent = nombre;
-    $('#carga-estado').innerHTML = '<p class="nota">El archivo se leyó en el navegador. Hojas encontradas:</p>';
-    $('#carga-tablas').innerHTML = '<tr><th class="txt">Hoja</th><th>Filas</th><th class="txt">Encabezados</th></tr>' +
-      Object.keys(hojas).map(function (n) {
-        var f = hojas[n];
-        return '<tr><td class="txt"><b>' + esc(n) + '</b></td><td>' + f.length + '</td><td class="txt envolver">' + esc((f[0] || []).join(' · ')) + '</td></tr>';
-      }).join('');
+    var modelo = M.construirModelo(hojas);
+    modelo.registros = K.calcularRegistros(modelo);
+    renderCarga(nombre, modelo);
+    if (!modelo.produccion.length) {
+      irA('cargar');
+      avisar('No se encontraron registros válidos de producción. Revise las tablas reconocidas.', 'error');
+      return;
+    }
+    // Solo se guardan las hojas que la app usa.
+    var usadas = {};
+    Object.keys(modelo.tablas).forEach(function (rol) { var h = modelo.tablas[rol].hoja; usadas[h] = hojas[h]; });
+    estado.archivo = { nombre: nombre, cargado: new Date().toISOString(), hojas: usadas };
+    estado.modelo = modelo;
+    guardar('pt.base', estado.archivo);
     actualizarCabecera();
-    avisar('Archivo leído: ' + Object.keys(hojas).length + ' hojas.');
+    irA('tablero');
+    avisar('Tablero generado: ' + modelo.registros.length + ' turnos, ' + modelo.produccion.length + ' registros de producción y ' +
+      modelo.paros.length + ' paros' + (modelo.errores.length ? '; ' + modelo.errores.length + ' fila(s) con errores (ver «Cargar datos»)' : '') + '.');
   }
 
+  function renderCarga(nombre, m) {
+    $('#carga-detalle').hidden = false;
+    $('#carga-titulo').textContent = nombre;
+    $('#carga-estado').innerHTML = '<div class="estado-carga">' +
+      '<div><b class="ok">' + m.produccion.length + '</b>tandas o registros de producción</div>' +
+      '<div><b>' + m.paros.length + '</b>paros</div>' +
+      '<div><b>' + m.pedidos.length + '</b>pedidos</div>' +
+      '<div><b>' + m.manoObra.length + '</b>registros de mano de obra</div>' +
+      '<div><b class="' + (m.errores.length ? 'mal' : 'ok') + '">' + m.errores.length + '</b>filas con errores</div></div>' +
+      (m.faltantes && m.faltantes.length ? '<p class="mal">Falta: ' + esc(m.faltantes.join(', ')) + '.</p>' : '');
+    var uso = { pedidos: ' · necesaria para el SLA', ventas: ' · necesaria para el % no vendido', manoObra: ' · necesaria para la productividad' };
+    $('#carga-tablas').innerHTML = '<tr><th class="txt">Tabla</th><th class="txt">Hoja del archivo</th><th class="txt">Columnas reconocidas</th></tr>' +
+      M.TABLAS.map(function (def) {
+        var t = m.tablas[def.rol];
+        if (!t) return '<tr><td class="txt">' + esc(def.nombre) + '</td><td class="txt nota" colspan="2">No encontrada' + esc(uso[def.rol] || '') + '</td></tr>';
+        var cols = Object.keys(t.mapa).map(function (k) { return '«' + t.encabezados[t.mapa[k]] + '»'; });
+        return '<tr><td class="txt">' + esc(def.nombre) + '</td><td class="txt"><b>' + esc(t.hoja) + '</b></td><td class="txt envolver">' + esc(cols.join(' · ')) + '</td></tr>';
+      }).join('');
+    $('#carga-errores-panel').hidden = !m.errores.length && !m.advertencias.length;
+    $('#carga-errores').innerHTML = m.errores.slice(0, 200).map(function (e) {
+      return '<li class="mal">' + esc(e.hoja) + ', fila ' + e.fila + ': ' + esc(e.mensaje) + '</li>';
+    }).concat(m.advertencias.map(function (a) { return '<li>' + esc(a) + '</li>'; })).join('');
+  }
+
+  $('#btn-borrar').addEventListener('click', function () {
+    if (!estado.archivo) { avisar('No hay datos cargados.'); return; }
+    if (!confirm('¿Quitar los datos de «' + estado.archivo.nombre + '»?')) return;
+    estado.archivo = null; estado.modelo = null; borrar('pt.base');
+    $('#carga-detalle').hidden = true;
+    actualizarCabecera(); avisar('Datos quitados.');
+  });
 
   function usarEjemplo() {
     if (!window.DATOS_EJEMPLO) { avisar('No se encontraron los datos de ejemplo.', 'error'); return; }
     cargar(DATOS_EJEMPLO.nombre, DATOS_EJEMPLO.hojas);
   }
   $('#btn-ejemplo').addEventListener('click', usarEjemplo);
+  $('#btn-ejemplo-vacio').addEventListener('click', usarEjemplo);
 
   function filtros() {
     return {};
@@ -487,7 +972,28 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
   }
 
   function renderTablero() {
-    return;
+    var hay = !!estado.modelo;
+    $('#tablero-vacio').hidden = hay;
+    $('#tablero').hidden = !hay;
+    if (!hay) return;
+    if (!estado.modelo.registros) estado.modelo.registros = K.calcularRegistros(estado.modelo);
+    var a = K.analizar(estado.modelo, filtros()), t = a.total;
+    var p100 = function (v) { return v == null ? null : v * 100; };
+
+    $('#resumen').textContent = t.registros
+      ? t.registros + ' turnos · ' + a.porFecha.length + ' día(s)' +
+        (a.porFecha.length ? ' (' + a.porFecha[0].clave + ' a ' + a.porFecha[a.porFecha.length - 1].clave + ')' : '') +
+        ' · ' + fmt.num(t.programado / 60, 1) + ' h programadas de horno'
+      : 'Ningún registro cumple los filtros seleccionados.';
+
+    var tarjetas = [
+      tarjeta('OEE del horno', fmt.frac(t.oee), '', 'disponibilidad × rendimiento × calidad', 'oee', p100(t.oee)),
+      tarjeta('Disponibilidad', fmt.frac(t.A), '', fmt.num(t.paros / 60, 1) + ' h de paros no planeados de ' + fmt.num(t.programado / 60, 1) + ' h', 'disponibilidad', p100(t.A)),
+      tarjeta('Rendimiento', fmt.frac(t.R), '', fmt.num(t.idealMin / 60, 1) + ' h ideales de ' + fmt.num(t.producido / 60, 1) + ' h operativas', 'rendimiento', p100(t.R)),
+      tarjeta('Calidad', fmt.frac(t.Q), '', fmt.num(t.defectuosas) + ' defectuosas de ' + fmt.num(t.unidades) + ' producidas', 'calidad', p100(t.Q))
+    ];
+    tarjetas.push(tarjeta('Trenzas buenas', fmt.num(t.buenas), '', fmt.num(t.unidades) + ' producidas en ' + fmt.num(a.datos.produccion.length) + ' tandas'));
+    $('#kpis').innerHTML = tarjetas.join('');
   }
 
 

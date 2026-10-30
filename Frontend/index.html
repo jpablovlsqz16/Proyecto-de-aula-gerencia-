@@ -32,12 +32,19 @@
     <section id="vista-tablero" class="vista activa">
       <div id="tablero-vacio" class="vacio">
         <h2>Aún no hay datos para el tablero</h2>
-        <p>El tablero se genera a partir del libro de Excel con la estructura de la plantilla (tablas Dim y Fact). Por ahora la aplicación lee y valida el archivo en «Cargar datos».</p>
+        <p>Cargue el archivo de Excel con la estructura de la plantilla (tablas Dim y Fact). El tablero se genera automáticamente.</p>
         <div class="acciones">
           <button class="btn primario" data-ir="cargar">Cargar archivo</button>
+          <button class="btn" id="btn-ejemplo-vacio">Usar datos de ejemplo (septiembre 2026, simulados)</button>
         </div>
       </div>
 
+      <div id="tablero" hidden>
+
+        <p class="resumen-filtro" id="resumen"></p>
+        <div class="kpis" id="kpis"></div>
+
+      </div>
     </section>
 
     <!-- ============ CARGAR DATOS ============ -->
@@ -84,6 +91,7 @@
   <script src="datos/ejemplo-panaderia.js"></script>
   <script src="js/lectura.js"></script>
   <script src="js/modelo.js"></script>
+  <script src="js/indicadores.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
