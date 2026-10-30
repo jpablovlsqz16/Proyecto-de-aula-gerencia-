@@ -24,6 +24,10 @@
     modelo: null,
     graficos: {}
   };
+  estado.archivo = leer('pt.base', null);
+  if (estado.archivo) {
+    try { estado.modelo = M.construirModelo(estado.archivo.hojas); } catch (e) { estado.archivo = null; }
+  }
 
 
   // ---------- Formato ----------
@@ -96,27 +100,66 @@
     lector.readAsArrayBuffer(archivo);
   }
 
-  // Primera versión: muestra las hojas leídas y cuántas filas tiene cada una.
+
   function cargar(nombre, hojas) {
-    estado.archivo = { nombre: nombre, hojas: hojas };
-    $('#carga-detalle').hidden = false;
-    $('#carga-titulo').textContent = nombre;
-    $('#carga-estado').innerHTML = '<p class="nota">El archivo se leyó en el navegador. Hojas encontradas:</p>';
-    $('#carga-tablas').innerHTML = '<tr><th class="txt">Hoja</th><th>Filas</th><th class="txt">Encabezados</th></tr>' +
-      Object.keys(hojas).map(function (n) {
-        var f = hojas[n];
-        return '<tr><td class="txt"><b>' + esc(n) + '</b></td><td>' + f.length + '</td><td class="txt envolver">' + esc((f[0] || []).join(' · ')) + '</td></tr>';
-      }).join('');
+    var modelo = M.construirModelo(hojas);
+    modelo.registros = K.calcularRegistros(modelo);
+    renderCarga(nombre, modelo);
+    if (!modelo.produccion.length) {
+      irA('cargar');
+      avisar('No se encontraron registros válidos de producción. Revise las tablas reconocidas.', 'error');
+      return;
+    }
+    // Solo se guardan las hojas que la app usa.
+    var usadas = {};
+    Object.keys(modelo.tablas).forEach(function (rol) { var h = modelo.tablas[rol].hoja; usadas[h] = hojas[h]; });
+    estado.archivo = { nombre: nombre, cargado: new Date().toISOString(), hojas: usadas };
+    estado.modelo = modelo;
+    guardar('pt.base', estado.archivo);
     actualizarCabecera();
-    avisar('Archivo leído: ' + Object.keys(hojas).length + ' hojas.');
+    irA('tablero');
+    avisar('Tablero generado: ' + modelo.registros.length + ' turnos, ' + modelo.produccion.length + ' registros de producción y ' +
+      modelo.paros.length + ' paros' + (modelo.errores.length ? '; ' + modelo.errores.length + ' fila(s) con errores (ver «Cargar datos»)' : '') + '.');
   }
 
+  function renderCarga(nombre, m) {
+    $('#carga-detalle').hidden = false;
+    $('#carga-titulo').textContent = nombre;
+    $('#carga-estado').innerHTML = '<div class="estado-carga">' +
+      '<div><b class="ok">' + m.produccion.length + '</b>tandas o registros de producción</div>' +
+      '<div><b>' + m.paros.length + '</b>paros</div>' +
+      '<div><b>' + m.pedidos.length + '</b>pedidos</div>' +
+      '<div><b>' + m.manoObra.length + '</b>registros de mano de obra</div>' +
+      '<div><b class="' + (m.errores.length ? 'mal' : 'ok') + '">' + m.errores.length + '</b>filas con errores</div></div>' +
+      (m.faltantes && m.faltantes.length ? '<p class="mal">Falta: ' + esc(m.faltantes.join(', ')) + '.</p>' : '');
+    var uso = { pedidos: ' · necesaria para el SLA', ventas: ' · necesaria para el % no vendido', manoObra: ' · necesaria para la productividad' };
+    $('#carga-tablas').innerHTML = '<tr><th class="txt">Tabla</th><th class="txt">Hoja del archivo</th><th class="txt">Columnas reconocidas</th></tr>' +
+      M.TABLAS.map(function (def) {
+        var t = m.tablas[def.rol];
+        if (!t) return '<tr><td class="txt">' + esc(def.nombre) + '</td><td class="txt nota" colspan="2">No encontrada' + esc(uso[def.rol] || '') + '</td></tr>';
+        var cols = Object.keys(t.mapa).map(function (k) { return '«' + t.encabezados[t.mapa[k]] + '»'; });
+        return '<tr><td class="txt">' + esc(def.nombre) + '</td><td class="txt"><b>' + esc(t.hoja) + '</b></td><td class="txt envolver">' + esc(cols.join(' · ')) + '</td></tr>';
+      }).join('');
+    $('#carga-errores-panel').hidden = !m.errores.length && !m.advertencias.length;
+    $('#carga-errores').innerHTML = m.errores.slice(0, 200).map(function (e) {
+      return '<li class="mal">' + esc(e.hoja) + ', fila ' + e.fila + ': ' + esc(e.mensaje) + '</li>';
+    }).concat(m.advertencias.map(function (a) { return '<li>' + esc(a) + '</li>'; })).join('');
+  }
+
+  $('#btn-borrar').addEventListener('click', function () {
+    if (!estado.archivo) { avisar('No hay datos cargados.'); return; }
+    if (!confirm('¿Quitar los datos de «' + estado.archivo.nombre + '»?')) return;
+    estado.archivo = null; estado.modelo = null; borrar('pt.base');
+    $('#carga-detalle').hidden = true;
+    actualizarCabecera(); avisar('Datos quitados.');
+  });
 
   function usarEjemplo() {
     if (!window.DATOS_EJEMPLO) { avisar('No se encontraron los datos de ejemplo.', 'error'); return; }
     cargar(DATOS_EJEMPLO.nombre, DATOS_EJEMPLO.hojas);
   }
   $('#btn-ejemplo').addEventListener('click', usarEjemplo);
+  $('#btn-ejemplo-vacio').addEventListener('click', usarEjemplo);
 
   function filtros() {
     return {};
@@ -138,7 +181,28 @@
   }
 
   function renderTablero() {
-    return;
+    var hay = !!estado.modelo;
+    $('#tablero-vacio').hidden = hay;
+    $('#tablero').hidden = !hay;
+    if (!hay) return;
+    if (!estado.modelo.registros) estado.modelo.registros = K.calcularRegistros(estado.modelo);
+    var a = K.analizar(estado.modelo, filtros()), t = a.total;
+    var p100 = function (v) { return v == null ? null : v * 100; };
+
+    $('#resumen').textContent = t.registros
+      ? t.registros + ' turnos · ' + a.porFecha.length + ' día(s)' +
+        (a.porFecha.length ? ' (' + a.porFecha[0].clave + ' a ' + a.porFecha[a.porFecha.length - 1].clave + ')' : '') +
+        ' · ' + fmt.num(t.programado / 60, 1) + ' h programadas de horno'
+      : 'Ningún registro cumple los filtros seleccionados.';
+
+    var tarjetas = [
+      tarjeta('OEE del horno', fmt.frac(t.oee), '', 'disponibilidad × rendimiento × calidad', 'oee', p100(t.oee)),
+      tarjeta('Disponibilidad', fmt.frac(t.A), '', fmt.num(t.paros / 60, 1) + ' h de paros no planeados de ' + fmt.num(t.programado / 60, 1) + ' h', 'disponibilidad', p100(t.A)),
+      tarjeta('Rendimiento', fmt.frac(t.R), '', fmt.num(t.idealMin / 60, 1) + ' h ideales de ' + fmt.num(t.producido / 60, 1) + ' h operativas', 'rendimiento', p100(t.R)),
+      tarjeta('Calidad', fmt.frac(t.Q), '', fmt.num(t.defectuosas) + ' defectuosas de ' + fmt.num(t.unidades) + ' producidas', 'calidad', p100(t.Q))
+    ];
+    tarjetas.push(tarjeta('Trenzas buenas', fmt.num(t.buenas), '', fmt.num(t.unidades) + ' producidas en ' + fmt.num(a.datos.produccion.length) + ' tandas'));
+    $('#kpis').innerHTML = tarjetas.join('');
   }
 
 
