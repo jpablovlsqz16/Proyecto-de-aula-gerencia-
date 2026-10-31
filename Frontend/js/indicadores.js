@@ -97,6 +97,19 @@
       incompletos: pedidos.filter(function (p) { return !p.completo; }).length };
   }
 
+  // % no vendido = (unidades buenas − vendidas) / unidades buenas. Las ventas son diarias.
+  function noVendido(produccion, ventas, buenas) {
+    var nv = null;
+    var conNV = ventas.filter(function (v) { return v.noVendidas != null; });
+    if (conNV.length) nv = conNV.reduce(function (s, v) { return s + v.noVendidas; }, 0);
+    else if (ventas.length) nv = buenas - ventas.reduce(function (s, v) { return s + v.vendidas; }, 0);
+    else {
+      var p = produccion.filter(function (x) { return x.noVendidas != null; });
+      if (p.length) nv = p.reduce(function (s, x) { return s + x.noVendidas; }, 0);
+    }
+    if (nv === null || !(buenas > 0)) return null;
+    return { valor: Math.max(0, nv) / buenas * 100, unidades: Math.max(0, nv) };
+  }
 
 
 
@@ -114,6 +127,7 @@
       datos: d
     };
     a.sla = sla(d.pedidos);
+    a.noVendido = noVendido(d.produccion, d.ventas, total.buenas);
     return a;
   }
 
@@ -121,6 +135,7 @@
   return {
     calcularRegistros: calcularRegistros, agregar: agregar, agruparPor: agruparPor, analizar: analizar,
     sla: sla,
+    noVendido: noVendido,
     todos: todos
   };
 });

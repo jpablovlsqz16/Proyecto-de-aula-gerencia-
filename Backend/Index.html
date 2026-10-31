@@ -760,7 +760,28 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
   }
 
 
+  // SLA (OTIF) = pedidos a tiempo y completos / total de pedidos.
+  function sla(pedidos) {
+    if (!pedidos.length) return null;
+    var a = pedidos.filter(function (p) { return p.cumple; }).length;
+    return { valor: a / pedidos.length * 100, aTiempo: a, total: pedidos.length,
+      tarde: pedidos.filter(function (p) { return !p.aTiempo; }).length,
+      incompletos: pedidos.filter(function (p) { return !p.completo; }).length };
+  }
 
+  // % no vendido = (unidades buenas − vendidas) / unidades buenas. Las ventas son diarias.
+  function noVendido(produccion, ventas, buenas) {
+    var nv = null;
+    var conNV = ventas.filter(function (v) { return v.noVendidas != null; });
+    if (conNV.length) nv = conNV.reduce(function (s, v) { return s + v.noVendidas; }, 0);
+    else if (ventas.length) nv = buenas - ventas.reduce(function (s, v) { return s + v.vendidas; }, 0);
+    else {
+      var p = produccion.filter(function (x) { return x.noVendidas != null; });
+      if (p.length) nv = p.reduce(function (s, x) { return s + x.noVendidas; }, 0);
+    }
+    if (nv === null || !(buenas > 0)) return null;
+    return { valor: Math.max(0, nv) / buenas * 100, unidades: Math.max(0, nv) };
+  }
 
 
 
@@ -777,12 +798,16 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
       porTurno: agruparPor(d.registros, 'turno'),
       datos: d
     };
+    a.sla = sla(d.pedidos);
+    a.noVendido = noVendido(d.produccion, d.ventas, total.buenas);
     return a;
   }
 
 
   return {
     calcularRegistros: calcularRegistros, agregar: agregar, agruparPor: agruparPor, analizar: analizar,
+    sla: sla,
+    noVendido: noVendido,
     todos: todos
   };
 });
@@ -992,6 +1017,13 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
       tarjeta('Rendimiento', fmt.frac(t.R), '', fmt.num(t.idealMin / 60, 1) + ' h ideales de ' + fmt.num(t.producido / 60, 1) + ' h operativas', 'rendimiento', p100(t.R)),
       tarjeta('Calidad', fmt.frac(t.Q), '', fmt.num(t.defectuosas) + ' defectuosas de ' + fmt.num(t.unidades) + ' producidas', 'calidad', p100(t.Q))
     ];
+    var sla = a.sla;
+    tarjetas.push(tarjeta('SLA de pedidos (OTIF)', sla ? fmt.pct(sla.valor) : 'N/D', '',
+      sla ? sla.aTiempo + ' de ' + sla.total + ' pedidos a tiempo y completos' + (filtros().turno ? ' (los pedidos no dependen del turno)' : '')
+        : 'el archivo no trae pedidos', 'sla', sla && sla.valor));
+    var nv = a.noVendido;
+    tarjetas.push(tarjeta('% no vendido', nv && nv.valor != null ? fmt.pct(nv.valor) : 'N/D', '',
+      nv ? (nv.valor == null ? nv.motivo : fmt.num(nv.unidades) + ' trenzas buenas sin vender') : 'el archivo no trae ventas', 'noVendido', nv && nv.valor));
     tarjetas.push(tarjeta('Trenzas buenas', fmt.num(t.buenas), '', fmt.num(t.unidades) + ' producidas en ' + fmt.num(a.datos.produccion.length) + ' tandas'));
     $('#kpis').innerHTML = tarjetas.join('');
   }
