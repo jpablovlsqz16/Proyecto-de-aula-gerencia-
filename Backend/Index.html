@@ -783,6 +783,36 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
     return { valor: Math.max(0, nv) / buenas * 100, unidades: Math.max(0, nv) };
   }
 
+  /*
+   * Productividad de mano de obra = unidades buenas / horas-hombre.
+   * Con tabla de mano de obra, las horas salen de ella (horas trabajadas de los operarios del turno);
+   * sin ella, de la duración de los registros de producción de cada operador.
+   */
+  function productividadMO(m, produccion, manoObra) {
+    if (m.tablas.manoObra) {
+      var porT = {}, porF = {}, totB = 0, totH = 0;
+      function sumar(obj, k, b, h) { if (!obj[k]) obj[k] = { clave: k, buenas: 0, horas: 0 }; obj[k].buenas += b; obj[k].horas += h; }
+      produccion.forEach(function (p) { sumar(porT, p.turno, p.buenas, 0); sumar(porF, p.fecha, p.buenas, 0); totB += p.buenas; });
+      manoObra.forEach(function (r) { sumar(porT, r.turno, 0, r.horas); sumar(porF, r.fecha, 0, r.horas); totH += r.horas; });
+      var lista = function (obj) {
+        return Object.keys(obj).sort().map(function (k) { var x = obj[k]; x.valor = x.horas > 0 ? x.buenas / x.horas : null; return x; });
+      };
+      return { valor: totH > 0 ? totB / totH : null, horas: totH, porTurno: lista(porT), porFecha: lista(porF), operadores: [] };
+    }
+    var g = {}, tb = 0, th = 0;
+    produccion.forEach(function (p) {
+      if (p.duracion == null) return;
+      var id = p.operador || '(sin operador)';
+      if (!g[id]) g[id] = { buenas: 0, horas: 0 };
+      g[id].buenas += p.buenas; g[id].horas += p.duracion / 60;
+      tb += p.buenas; th += p.duracion / 60;
+    });
+    var operadores = Object.keys(g).sort().map(function (id) {
+      return { id: id, nombre: m.operadores[id] ? m.operadores[id].nombre : id, buenas: g[id].buenas, horas: g[id].horas,
+        valor: g[id].horas > 0 ? g[id].buenas / g[id].horas : null };
+    });
+    return { valor: th > 0 ? tb / th : null, horas: th, operadores: operadores };
+  }
 
 
   function analizar(m, filtros) {
@@ -800,6 +830,7 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
     };
     a.sla = sla(d.pedidos);
     a.noVendido = noVendido(d.produccion, d.ventas, total.buenas);
+    a.productividad = productividadMO(m, d.produccion, d.manoObra);
     return a;
   }
 
@@ -808,6 +839,7 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
     calcularRegistros: calcularRegistros, agregar: agregar, agruparPor: agruparPor, analizar: analizar,
     sla: sla,
     noVendido: noVendido,
+    productividadMO: productividadMO,
     todos: todos
   };
 });
@@ -1024,6 +1056,9 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
     var nv = a.noVendido;
     tarjetas.push(tarjeta('% no vendido', nv && nv.valor != null ? fmt.pct(nv.valor) : 'N/D', '',
       nv ? (nv.valor == null ? nv.motivo : fmt.num(nv.unidades) + ' trenzas buenas sin vender') : 'el archivo no trae ventas', 'noVendido', nv && nv.valor));
+    var pr = a.productividad;
+    tarjetas.push(tarjeta('Productividad de mano de obra', fmt.num(pr.valor, 2), 'trenzas/h-h', fmt.num(pr.horas, 1) + ' horas-hombre' +
+      '', 'productividad', pr.valor));
     tarjetas.push(tarjeta('Trenzas buenas', fmt.num(t.buenas), '', fmt.num(t.unidades) + ' producidas en ' + fmt.num(a.datos.produccion.length) + ' tandas'));
     $('#kpis').innerHTML = tarjetas.join('');
   }
