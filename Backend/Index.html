@@ -243,6 +243,8 @@ a.btn { text-decoration: none; display: inline-block; }
           <div class="filtros-acciones">
             <button class="btn" id="btn-limpiar">Limpiar filtros</button>
             <button class="btn" id="btn-metas">Metas</button>
+            <button class="btn" id="btn-exportar">Exportar CSV</button>
+            <button class="btn primario" id="btn-imprimir">Imprimir / PDF</button>
           </div>
         </div>
 
@@ -255,6 +257,7 @@ a.btn { text-decoration: none; display: inline-block; }
 
         <p class="resumen-filtro" id="resumen"></p>
         <div class="kpis" id="kpis"></div>
+        <div class="alertas panel" id="alertas"></div>
 
         <div class="graficos">
           <figure class="panel grafico ancho">
@@ -1060,9 +1063,8 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
   document.querySelectorAll('[data-ir]').forEach(function (b) { b.addEventListener('click', function () { irA(b.dataset.ir); }); });
 
   function actualizarCabecera() {
-    $('#fuente-actual').textContent = estado.archivo
-      ? 'Panadería San Nicolás · ' + estado.archivo.nombre
-      : 'Panadería San Nicolás · sin datos cargados';
+    var nombre = estado.archivo ? estado.archivo.nombre : 'sin datos cargados';
+    $('#fuente-actual').textContent = /^Panadería San Nicolás/.test(nombre) ? nombre : 'Panadería San Nicolás · ' + nombre;
   }
 
   // ---------- Carga del archivo ----------
@@ -1288,6 +1290,7 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
     tarjetas.push(tarjeta('Trenzas buenas', fmt.num(t.buenas), '', fmt.num(t.unidades) + ' producidas en ' + fmt.num(a.datos.produccion.length) + ' tandas'));
     $('#kpis').innerHTML = tarjetas.join('');
     renderGraficos(a);
+    renderHallazgos(a);
   }
 
   function renderGraficos(a) {
@@ -1359,7 +1362,69 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
     if (variosEquipos) grafico('g-maquina', barras(a.porMaquina, function (g) { return nombreEquipo(g.clave); }));
   }
 
+  function renderHallazgos(a) {
+    var t = a.total, Mt = estado.metas, items = [];
+    if (!t.registros) { $('#alertas').innerHTML = '<h3>Hallazgos</h3><p class="nota">Sin registros en el filtro.</p>'; return; }
+    var clase = function (s) { return s === 'verde' ? 'bien' : s === 'sin-meta' ? '' : 'mal'; };
+    if (t.oee != null) {
+      items.push({ c: clase(semaforo('oee', t.oee * 100)), t: 'OEE del horno de ' + fmt.frac(t.oee) + ' frente a la meta de ' + fmt.num(Mt.oee.verde, 0) + ' %.' });
+    }
+    var factores = [{ n: 'disponibilidad', v: t.A }, { n: 'rendimiento', v: t.R }, { n: 'calidad', v: t.Q }]
+      .filter(function (f) { return f.v != null; }).sort(function (x, y) { return x.v - y.v; });
+    if (factores.length) {
+      var f = factores[0], detalle = '';
+      if (f.n === 'disponibilidad') detalle = ': ' + fmt.num(t.paros / 60, 1) + ' h de paros no planeados (' + fmt.pct(t.paros / t.programado * 100) + ' del tiempo programado).';
+      if (f.n === 'rendimiento') detalle = ': ' + fmt.num((t.producido - t.idealMin) / 60, 1) + ' h del horno operando sin hornear al ritmo ideal (carga y descarga, tiempo entre tandas).';
+      if (f.n === 'calidad') detalle = ': ' + fmt.num(t.defectuosas) + ' trenzas defectuosas.';
+      items.push({ c: '', t: 'El factor del OEE más bajo es el ' + f.n + ' (' + fmt.frac(f.v) + ')' + detalle });
+    }
+    if (a.pareto.length) {
+      var top = [], acum = 0;
+      a.pareto.forEach(function (p) { if (acum < 80) { top.push(p.motivo + ' (' + fmt.pct(p.pct) + ')'); acum = p.acumulado; } });
+      items.push({ c: '', t: 'Pareto de paros no planeados: ' + top.join(', ') + ' explican el ' + fmt.pct(acum) + ' del tiempo perdido.' });
+    }
+    if (a.sla) {
+      items.push({ c: clase(semaforo('sla', a.sla.valor)), t: 'SLA de ' + fmt.pct(a.sla.valor) + ': ' + a.sla.tarde + ' pedido(s) tarde y ' +
+        a.sla.incompletos + ' incompleto(s) de ' + a.sla.total + '.' });
+    } else items.push({ c: '', t: 'SLA: el archivo no trae la tabla de pedidos.' });
+    if (a.noVendido && a.noVendido.valor != null) {
+      items.push({ c: clase(semaforo('noVendido', a.noVendido.valor)), t: '% no vendido de ' + fmt.pct(a.noVendido.valor) + ' (' +
+        fmt.num(a.noVendido.unidades) + ' trenzas buenas sin vender) frente a un máximo de ' + fmt.num(Mt.noVendido.verde, 0) + ' %.' });
+    }
+    var pr = a.productividad;
+    if (pr.porTurno && pr.porTurno.length > 1) {
+      items.push({ c: '', t: 'Productividad de mano de obra: ' + fmt.num(pr.valor, 2) + ' trenzas/h-h; ' +
+        pr.porTurno.map(function (x) { return 'turno ' + x.clave + ' ' + fmt.num(x.valor, 2); }).join(' · ') + '.' });
+    }
+    if (a.porTurno.length > 1) {
+      items.push({ c: '', t: 'OEE por turno: ' + a.porTurno.map(function (g) { return 'turno ' + g.clave + ' ' + fmt.frac(g.oee); }).join(' · ') + '.' });
+    }
+    var dias = a.porFecha.filter(function (g) { return g.oee != null; });
+    if (dias.length > 1) {
+      var pd = dias.reduce(function (x, y) { return y.oee < x.oee ? y : x; });
+      items.push({ c: '', t: 'Día con menor OEE: ' + pd.clave + ' (' + fmt.frac(pd.oee) + ').' });
+    }
+    $('#alertas').innerHTML = '<h3>Hallazgos</h3><ul>' + items.map(function (x) { return '<li class="' + x.c + '">' + esc(x.t) + '</li>'; }).join('') + '</ul>';
+  }
 
+  // ---------- Exportar e imprimir ----------
+  function descargar(nombre, contenido) {
+    var url = URL.createObjectURL(new Blob([contenido], { type: 'text/csv;charset=utf-8' }));
+    var a = document.createElement('a');
+    a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+  $('#btn-exportar').addEventListener('click', function () {
+    var d = function (v, n) { return v == null ? '' : Number(v).toFixed(n).replace('.', ','); };
+    var filas = [['Fecha', 'Turno', 'Equipo', 'Tiempo base (min)', 'Paros planeados excluidos (min)', 'Tiempo programado (min)',
+      'Paros no planeados (min)', 'Tiempo operativo (min)', 'Disponibilidad', 'Unidades producidas', 'Defectuosas', 'Buenas', 'Calidad',
+      'Tiempo ideal (min)', 'Rendimiento', 'OEE']].concat(K.filtrar(estado.modelo, filtros()).registros.map(function (r) {
+      return [r.fecha, r.turno, r.maquina, d(r.base, 2), d(r.excluidos, 2), d(r.programado, 2), d(r.paros, 2), d(r.producido, 2), d(r.A, 4),
+        r.unidades, r.defectuosas, r.buenas, d(r.Q, 4), d(r.idealMin, 2), d(r.R, 4), d(r.oee, 4)];
+    }));
+    descargar('indicadores-pan-trenza.csv', '﻿' + filas.map(function (f) { return f.join(';'); }).join('\r\n'));
+  });
+  $('#btn-imprimir').addEventListener('click', function () { window.print(); });
 
   // ---------- Inicio ----------
   renderMetas();

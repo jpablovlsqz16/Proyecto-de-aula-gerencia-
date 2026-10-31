@@ -438,6 +438,24 @@
     $('#alertas').innerHTML = '<h3>Hallazgos</h3><ul>' + items.map(function (x) { return '<li class="' + x.c + '">' + esc(x.t) + '</li>'; }).join('') + '</ul>';
   }
 
+  // ---------- Exportar e imprimir ----------
+  function descargar(nombre, contenido) {
+    var url = URL.createObjectURL(new Blob([contenido], { type: 'text/csv;charset=utf-8' }));
+    var a = document.createElement('a');
+    a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+  $('#btn-exportar').addEventListener('click', function () {
+    var d = function (v, n) { return v == null ? '' : Number(v).toFixed(n).replace('.', ','); };
+    var filas = [['Fecha', 'Turno', 'Equipo', 'Tiempo base (min)', 'Paros planeados excluidos (min)', 'Tiempo programado (min)',
+      'Paros no planeados (min)', 'Tiempo operativo (min)', 'Disponibilidad', 'Unidades producidas', 'Defectuosas', 'Buenas', 'Calidad',
+      'Tiempo ideal (min)', 'Rendimiento', 'OEE']].concat(K.filtrar(estado.modelo, filtros()).registros.map(function (r) {
+      return [r.fecha, r.turno, r.maquina, d(r.base, 2), d(r.excluidos, 2), d(r.programado, 2), d(r.paros, 2), d(r.producido, 2), d(r.A, 4),
+        r.unidades, r.defectuosas, r.buenas, d(r.Q, 4), d(r.idealMin, 2), d(r.R, 4), d(r.oee, 4)];
+    }));
+    descargar('indicadores-pan-trenza.csv', '﻿' + filas.map(function (f) { return f.join(';'); }).join('\r\n'));
+  });
+  $('#btn-imprimir').addEventListener('click', function () { window.print(); });
 
   // ---------- Inicio ----------
   renderMetas();
