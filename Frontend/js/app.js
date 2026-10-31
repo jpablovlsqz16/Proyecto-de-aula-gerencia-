@@ -208,6 +208,9 @@
     var nv = a.noVendido;
     tarjetas.push(tarjeta('% no vendido', nv && nv.valor != null ? fmt.pct(nv.valor) : 'N/D', '',
       nv ? (nv.valor == null ? nv.motivo : fmt.num(nv.unidades) + ' trenzas buenas sin vender') : 'el archivo no trae ventas', 'noVendido', nv && nv.valor));
+    var pr = a.productividad;
+    tarjetas.push(tarjeta('Productividad de mano de obra', fmt.num(pr.valor, 2), 'trenzas/h-h', fmt.num(pr.horas, 1) + ' horas-hombre' +
+      '', 'productividad', pr.valor));
     tarjetas.push(tarjeta('Trenzas buenas', fmt.num(t.buenas), '', fmt.num(t.unidades) + ' producidas en ' + fmt.num(a.datos.produccion.length) + ' tandas'));
     $('#kpis').innerHTML = tarjetas.join('');
   }
