@@ -162,12 +162,24 @@
     return a;
   }
 
+  /*
+   * Semáforo según las fichas técnicas. sentido 'min': verde si valor ≥ verde, rojo si valor < rojo.
+   * sentido 'max': verde si valor ≤ verde, rojo si valor > rojo. Entre ambos límites, amarillo.
+   */
+  function semaforo(valor, verde, rojo, sentido) {
+    if (valor == null || verde === '' || verde == null || isNaN(verde)) return 'sin-meta';
+    verde = Number(verde);
+    rojo = rojo === '' || rojo == null || isNaN(rojo) ? verde : Number(rojo);
+    if (sentido === 'max') return valor <= verde ? 'verde' : valor > rojo ? 'rojo' : 'amarillo';
+    return valor >= verde ? 'verde' : valor < rojo ? 'rojo' : 'amarillo';
+  }
 
   return {
     calcularRegistros: calcularRegistros, agregar: agregar, agruparPor: agruparPor, analizar: analizar,
     sla: sla,
     noVendido: noVendido,
     productividadMO: productividadMO,
+    semaforo: semaforo,
     todos: todos
   };
 });

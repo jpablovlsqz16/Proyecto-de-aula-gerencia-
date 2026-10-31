@@ -40,6 +40,18 @@
       </div>
 
       <div id="tablero" hidden>
+        <div class="filtros panel">
+          <div class="filtros-acciones">
+            <button class="btn" id="btn-metas">Metas</button>
+          </div>
+        </div>
+
+        <div id="panel-metas" class="panel metas" hidden>
+          <h3>Metas y semáforo (fichas técnicas)</h3>
+          <p class="nota">Verde si cumple la meta, rojo si pasa el límite, amarillo entre ambos. Valores por defecto tomados de las fichas técnicas; se guardan en este navegador.</p>
+          <div class="metas-tabla" id="metas-tabla"></div>
+          <div class="acciones"><button class="btn" id="btn-metas-defecto">Restaurar valores de las fichas</button></div>
+        </div>
 
         <p class="resumen-filtro" id="resumen"></p>
         <div class="kpis" id="kpis"></div>

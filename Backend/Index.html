@@ -234,6 +234,18 @@ a.btn { text-decoration: none; display: inline-block; }
       </div>
 
       <div id="tablero" hidden>
+        <div class="filtros panel">
+          <div class="filtros-acciones">
+            <button class="btn" id="btn-metas">Metas</button>
+          </div>
+        </div>
+
+        <div id="panel-metas" class="panel metas" hidden>
+          <h3>Metas y semáforo (fichas técnicas)</h3>
+          <p class="nota">Verde si cumple la meta, rojo si pasa el límite, amarillo entre ambos. Valores por defecto tomados de las fichas técnicas; se guardan en este navegador.</p>
+          <div class="metas-tabla" id="metas-tabla"></div>
+          <div class="acciones"><button class="btn" id="btn-metas-defecto">Restaurar valores de las fichas</button></div>
+        </div>
 
         <p class="resumen-filtro" id="resumen"></p>
         <div class="kpis" id="kpis"></div>
@@ -834,12 +846,24 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
     return a;
   }
 
+  /*
+   * Semáforo según las fichas técnicas. sentido 'min': verde si valor ≥ verde, rojo si valor < rojo.
+   * sentido 'max': verde si valor ≤ verde, rojo si valor > rojo. Entre ambos límites, amarillo.
+   */
+  function semaforo(valor, verde, rojo, sentido) {
+    if (valor == null || verde === '' || verde == null || isNaN(verde)) return 'sin-meta';
+    verde = Number(verde);
+    rojo = rojo === '' || rojo == null || isNaN(rojo) ? verde : Number(rojo);
+    if (sentido === 'max') return valor <= verde ? 'verde' : valor > rojo ? 'rojo' : 'amarillo';
+    return valor >= verde ? 'verde' : valor < rojo ? 'rojo' : 'amarillo';
+  }
 
   return {
     calcularRegistros: calcularRegistros, agregar: agregar, agruparPor: agruparPor, analizar: analizar,
     sla: sla,
     noVendido: noVendido,
     productividadMO: productividadMO,
+    semaforo: semaforo,
     todos: todos
   };
 });
@@ -866,10 +890,27 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
   }
   function borrar(clave) { try { localStorage.removeItem(clave); } catch (e) { /* sin almacenamiento */ } }
 
+  // ---------- Metas y semáforos de las fichas técnicas ----------
+  // sentido 'min': verde si valor ≥ verde, rojo si valor < rojo. 'max': verde si valor ≤ verde, rojo si valor > rojo.
+  var INDICADORES = [
+    { clave: 'oee', nombre: 'OEE del horno', unidad: '%', sentido: 'min', verde: 65, rojo: 55 },
+    { clave: 'disponibilidad', nombre: 'Disponibilidad', unidad: '%', sentido: 'min', verde: 90, rojo: 80 },
+    { clave: 'rendimiento', nombre: 'Rendimiento', unidad: '%', sentido: 'min', verde: 80, rojo: 70 },
+    { clave: 'calidad', nombre: 'Calidad', unidad: '%', sentido: 'min', verde: 95, rojo: 90 },
+    { clave: 'sla', nombre: 'SLA de pedidos (OTIF)', unidad: '%', sentido: 'min', verde: 95, rojo: 90 },
+    { clave: 'noVendido', nombre: '% de producto no vendido', unidad: '%', sentido: 'max', verde: 10, rojo: 15 },
+    { clave: 'productividad', nombre: 'Productividad de mano de obra', unidad: 'trenzas/h-h', sentido: 'min', lineaBase: '' }
+  ];
+  function metasDefecto() {
+    var m = {};
+    INDICADORES.forEach(function (i) { m[i.clave] = { verde: i.verde, rojo: i.rojo, lineaBase: i.lineaBase }; });
+    return m;
+  }
 
   var estado = {
     archivo: null,                               // { nombre, cargado, hojas }
     modelo: null,
+    metas: Object.assign(metasDefecto(), leer('pt.metas.fichas', {})),
     graficos: {}
   };
   estado.archivo = leer('pt.base', null);
@@ -877,6 +918,19 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
     try { estado.modelo = M.construirModelo(estado.archivo.hojas); } catch (e) { estado.archivo = null; }
   }
 
+  // Límites del semáforo. La productividad usa línea base (verde ≥ línea base + 5 %, rojo < línea base).
+  function limites(clave) {
+    var m = estado.metas[clave] || {};
+    if (clave === 'productividad') {
+      var lb = Number(m.lineaBase);
+      return m.lineaBase === '' || m.lineaBase == null || !(lb > 0) ? null : { verde: lb * 1.05, rojo: lb };
+    }
+    return { verde: m.verde, rojo: m.rojo };
+  }
+  function semaforo(clave, valor) {
+    var ind = INDICADORES.filter(function (i) { return i.clave === clave; })[0], l = limites(clave);
+    return l ? K.semaforo(valor, l.verde, l.rojo, ind.sentido) : 'sin-meta';
+  }
 
   // ---------- Formato ----------
   var fmt = {
@@ -1017,10 +1071,39 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
     return q && q.nombre !== id ? q.nombre + ' (' + id + ')' : id;
   }
 
+  // ---------- Metas ----------
+  function renderMetas() {
+    $('#metas-tabla').innerHTML = INDICADORES.map(function (i) {
+      var m = estado.metas[i.clave] || {};
+      if (i.clave === 'productividad') {
+        return '<div class="meta-fila"><span>' + esc(i.nombre) + '</span><label>Línea base (' + esc(i.unidad) + ')' +
+          '<input type="number" step="0.1" min="0" data-meta="productividad" data-campo="lineaBase" value="' + esc(m.lineaBase) + '"></label>' +
+          '<span class="nota">Verde ≥ línea base + 5 % · rojo &lt; línea base</span></div>';
+      }
+      var signo = i.sentido === 'max' ? ['≤', '&gt;'] : ['≥', '&lt;'];
+      return '<div class="meta-fila"><span>' + esc(i.nombre) + '</span>' +
+        '<label>Verde ' + signo[0] + ' <input type="number" step="0.1" data-meta="' + i.clave + '" data-campo="verde" value="' + esc(m.verde) + '"></label>' +
+        '<label>Rojo ' + signo[1] + ' <input type="number" step="0.1" data-meta="' + i.clave + '" data-campo="rojo" value="' + esc(m.rojo) + '"></label></div>';
+    }).join('');
+    document.querySelectorAll('#metas-tabla input').forEach(function (inp) {
+      inp.addEventListener('input', function () {
+        estado.metas[inp.dataset.meta][inp.dataset.campo] = inp.value === '' ? '' : Number(inp.value);
+        guardar('pt.metas.fichas', estado.metas);
+        renderTablero();
+      });
+    });
+  }
+  $('#btn-metas').addEventListener('click', function () { $('#panel-metas').hidden = !$('#panel-metas').hidden; });
+  $('#btn-metas-defecto').addEventListener('click', function () {
+    estado.metas = metasDefecto(); guardar('pt.metas.fichas', estado.metas); renderMetas(); renderTablero();
+  });
 
   // ---------- Tablero ----------
   function tarjeta(etiqueta, valor, unidad, detalle, clave, valorNum) {
     var sem = 'sin-meta', meta = '';
+    sem = clave ? semaforo(clave, valorNum) : 'sin-meta';
+    var l = clave ? limites(clave) : null, ind = INDICADORES.filter(function (i) { return i.clave === clave; })[0];
+    meta = l && valorNum != null ? ' · meta ' + (ind.sentido === 'max' ? '≤ ' : '≥ ') + fmt.num(l.verde, 1) : '';
     var textos = { verde: '● Cumple la meta', amarillo: '● En alerta', rojo: '● Fuera de meta', 'sin-meta': '' };
     return '<div class="kpi ' + sem + '"><div class="etiqueta">' + esc(etiqueta) + '</div>' +
       '<div class="valor">' + valor + (unidad ? ' <span class="unidad">' + unidad + '</span>' : '') + '</div>' +
@@ -1058,6 +1141,7 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
       nv ? (nv.valor == null ? nv.motivo : fmt.num(nv.unidades) + ' trenzas buenas sin vender') : 'el archivo no trae ventas', 'noVendido', nv && nv.valor));
     var pr = a.productividad;
     tarjetas.push(tarjeta('Productividad de mano de obra', fmt.num(pr.valor, 2), 'trenzas/h-h', fmt.num(pr.horas, 1) + ' horas-hombre' +
+      (limites('productividad') ? '' : ' · defina la línea base en Metas') +
       '', 'productividad', pr.valor));
     tarjetas.push(tarjeta('Trenzas buenas', fmt.num(t.buenas), '', fmt.num(t.unidades) + ' producidas en ' + fmt.num(a.datos.produccion.length) + ' tandas'));
     $('#kpis').innerHTML = tarjetas.join('');
@@ -1067,6 +1151,7 @@ window.DATOS_EJEMPLO = { nombre: "Panadería San Nicolás · septiembre 2026 (si
 
 
   // ---------- Inicio ----------
+  renderMetas();
   actualizarCabecera();
   renderTablero();
 })();
