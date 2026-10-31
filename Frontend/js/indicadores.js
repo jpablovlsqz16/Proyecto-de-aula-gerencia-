@@ -87,6 +87,28 @@
     return { registros: m.registros, produccion: m.produccion, paros: m.paros, manoObra: m.manoObra, pedidos: m.pedidos, ventas: m.ventas };
   }
 
+  function filtrar(m, f) {
+    f = f || {};
+    function pasa(r) {
+      if (f.desde && r.fecha < f.desde) return false;
+      if (f.hasta && r.fecha > f.hasta) return false;
+      if (f.maquina && r.maquina !== f.maquina) return false;
+      if (f.turno && r.turno !== f.turno) return false;
+      if (f.linea) { var maq = m.maquinas[r.maquina]; if (!maq || maq.linea !== f.linea) return false; }
+      return true;
+    }
+    return {
+      registros: m.registros.filter(pasa),
+      produccion: m.produccion.filter(pasa),
+      paros: m.paros.filter(pasa),
+      manoObra: m.manoObra.filter(function (r) {
+        return (!f.desde || r.fecha >= f.desde) && (!f.hasta || r.fecha <= f.hasta) && (!f.turno || r.turno === f.turno);
+      }),
+      pedidos: m.pedidos.filter(function (p) { return (!f.desde || p.fecha >= f.desde) && (!f.hasta || p.fecha <= f.hasta); }),
+      ventas: m.ventas.filter(function (v) { return !v.fecha || ((!f.desde || v.fecha >= f.desde) && (!f.hasta || v.fecha <= f.hasta)); })
+    };
+  }
+
 
   // SLA (OTIF) = pedidos a tiempo y completos / total de pedidos.
   function sla(pedidos) {
@@ -147,6 +169,7 @@
     filtros = filtros || {};
     if (!m.registros) m.registros = calcularRegistros(m);
     var d = todos(m);
+    d = filtrar(m, filtros);
     var total = agregar(d.registros);
     var porFecha = agruparPor(d.registros, 'fecha');
     var a = {
@@ -158,6 +181,10 @@
     };
     a.sla = sla(d.pedidos);
     a.noVendido = noVendido(d.produccion, d.ventas, total.buenas);
+    // Las ventas no tienen turno ni máquina: con esos filtros el % no vendido no es comparable.
+    if ((filtros.turno || filtros.maquina || filtros.linea) && d.ventas.length) {
+      a.noVendido = { valor: null, motivo: 'Se calcula por día: quite el filtro de turno o máquina' };
+    }
     a.productividad = productividadMO(m, d.produccion, d.manoObra);
     return a;
   }
@@ -180,6 +207,7 @@
     noVendido: noVendido,
     productividadMO: productividadMO,
     semaforo: semaforo,
+    filtrar: filtrar,
     todos: todos
   };
 });
