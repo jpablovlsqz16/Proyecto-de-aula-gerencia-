@@ -164,6 +164,32 @@
     return { valor: th > 0 ? tb / th : null, horas: th, operadores: operadores };
   }
 
+  // Pareto de paros no excluidos por motivo.
+  function pareto(m, paros) {
+    var g = {};
+    paros.forEach(function (p) {
+      if (p.excluido !== false) return;
+      var nombre = m.motivos[p.motivo] ? m.motivos[p.motivo].nombre : p.motivo;
+      g[nombre] = (g[nombre] || 0) + p.duracion;
+    });
+    var total = Object.keys(g).reduce(function (s, k) { return s + g[k]; }, 0), acum = 0;
+    return Object.keys(g).map(function (k) { return { motivo: k, minutos: g[k] }; })
+      .sort(function (a, b) { return b.minutos - a.minutos; })
+      .map(function (x) { acum += x.minutos; x.pct = total ? x.minutos / total * 100 : 0; x.acumulado = total ? acum / total * 100 : 0; return x; });
+  }
+
+  // SLA y % no vendido por día (para la gráfica de cliente y desperdicio).
+  function clientePorDia(d, porFecha) {
+    var dias = {};
+    function dia(k) { if (!dias[k]) dias[k] = { clave: k, pedidos: [], ventas: [], buenas: 0 }; return dias[k]; }
+    d.pedidos.forEach(function (p) { dia(p.fecha).pedidos.push(p); });
+    d.ventas.forEach(function (v) { if (v.fecha) dia(v.fecha).ventas.push(v); });
+    porFecha.forEach(function (g) { dia(g.clave).buenas = g.buenas; });
+    return Object.keys(dias).sort().map(function (k) {
+      var x = dias[k], s = sla(x.pedidos), n = x.ventas.length ? noVendido([], x.ventas, x.buenas) : null;
+      return { clave: k, sla: s ? s.valor : null, noVendido: n ? n.valor : null };
+    });
+  }
 
   function analizar(m, filtros) {
     filtros = filtros || {};
@@ -186,6 +212,8 @@
       a.noVendido = { valor: null, motivo: 'Se calcula por día: quite el filtro de turno o máquina' };
     }
     a.productividad = productividadMO(m, d.produccion, d.manoObra);
+    a.pareto = pareto(m, d.paros);
+    a.clientePorDia = clientePorDia(d, porFecha);
     return a;
   }
 
@@ -208,6 +236,7 @@
     productividadMO: productividadMO,
     semaforo: semaforo,
     filtrar: filtrar,
+    pareto: pareto,
     todos: todos
   };
 });

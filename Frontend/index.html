@@ -62,6 +62,36 @@
         <p class="resumen-filtro" id="resumen"></p>
         <div class="kpis" id="kpis"></div>
 
+        <div class="graficos">
+          <figure class="panel grafico ancho">
+            <figcaption>OEE del horno por día <span class="nota">(OEE = disponibilidad × rendimiento × calidad)</span></figcaption>
+            <div class="lienzo"><canvas id="g-oee-dia"></canvas></div>
+          </figure>
+          <figure class="panel grafico">
+            <figcaption>Cascada de tiempo del horno <span class="nota">(horas)</span></figcaption>
+            <div class="lienzo"><canvas id="g-cascada"></canvas></div>
+          </figure>
+          <figure class="panel grafico">
+            <figcaption>Pareto de paros no planeados <span class="nota">(minutos y % acumulado)</span></figcaption>
+            <div class="lienzo"><canvas id="g-pareto"></canvas></div>
+          </figure>
+          <figure class="panel grafico">
+            <figcaption>Cliente y desperdicio por día <span class="nota">(SLA y % no vendido)</span></figcaption>
+            <div class="lienzo"><canvas id="g-cliente"></canvas></div>
+          </figure>
+          <figure class="panel grafico">
+            <figcaption>Productividad de mano de obra <span class="nota">(trenzas buenas por hora-hombre)</span></figcaption>
+            <div class="lienzo"><canvas id="g-productividad"></canvas></div>
+          </figure>
+          <figure class="panel grafico" id="fig-turno">
+            <figcaption>OEE por turno</figcaption>
+            <div class="lienzo"><canvas id="g-turno"></canvas></div>
+          </figure>
+          <figure class="panel grafico" id="fig-maquina">
+            <figcaption>OEE por equipo</figcaption>
+            <div class="lienzo"><canvas id="g-maquina"></canvas></div>
+          </figure>
+        </div>
       </div>
     </section>
 
@@ -105,6 +135,7 @@
     Juan Pablo · María Camila · Juan José · Iván Santiago
   </footer>
 
+  <script src="vendor/chart.umd.min.js"></script>
   <script src="vendor/xlsx.full.min.js"></script>
   <script src="datos/ejemplo-panaderia.js"></script>
   <script src="js/lectura.js"></script>
