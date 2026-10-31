@@ -18,16 +18,20 @@ Como **gerente y equipo operativo de la Panadería San Nicolás**, queremos que 
 
 ---
 
-## Canales de Acceso al Prototipo
+## Canales de Acceso al Prototipo y Repositorio
 
-1. **GitHub Pages (Producción Web Pública):**
+1. **Repositorio Oficial en GitHub:**
+   - URL: `https://github.com/jpablovlsqz16/Proyecto-de-aula-gerencia-`
+   - Código fuente completo, control de versiones Git, ramas por sprint, suites de pruebas automáticas y documentación.
+2. **GitHub Pages (Producción Web Pública):**
    - URL: `https://jpablovlsqz16.github.io/Proyecto-de-aula-gerencia-/`
-   - Redirección automática desde la raíz a `Frontend/index.html`.
-2. **Google Apps Script (Web App Institucional):**
-   - URL: `https://script.google.com/macros/s/.../exec`
-   - Servido por `Backend/Code.gs` a partir de `Backend/Index.html`.
-3. **Modo Local Offline:**
-   - Doble clic directo a `Frontend/index.html` en Google Chrome, Microsoft Edge o Mozilla Firefox. Funciona sin conexión a internet gracias a las dependencias locales en `Frontend/vendor/`.
+   - Redirección automática desde la raíz a `Frontend/index.html`. Despliegue en vivo en alta disponibilidad.
+3. **Google Apps Script (Web App Institucional):**
+   - Proyecto Script ID: `18r_gFOM09ovDdwcf_LG0ul88MKnE1V7BeXRePZW3K8W8vyJOLJy1Psch`
+   - Editor / Proyecto: `https://script.google.com/d/18r_gFOM09ovDdwcf_LG0ul88MKnE1V7BeXRePZW3K8W8vyJOLJy1Psch/edit`
+   - Servido por `Backend/Code.gs` a partir del monolito compilado `Backend/Index.html`.
+4. **Modo Local Offline:**
+   - Doble clic directo a `Frontend/index.html` en Google Chrome, Microsoft Edge o Mozilla Firefox. Funciona 100 % sin conexión a internet gracias a las dependencias locales en `Frontend/vendor/`.
 
 ---
 
