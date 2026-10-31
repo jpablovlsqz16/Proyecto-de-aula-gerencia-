@@ -191,8 +191,36 @@
   $('#btn-ejemplo').addEventListener('click', usarEjemplo);
   $('#btn-ejemplo-vacio').addEventListener('click', usarEjemplo);
 
+  // ---------- Filtros ----------
+  function llenarSelect(sel, valores, etiquetaTodos, etiqueta) {
+    var actual = sel.value;
+    sel.innerHTML = '<option value="">' + etiquetaTodos + '</option>' + valores.map(function (v) {
+      return '<option value="' + esc(v) + '">' + esc(etiqueta ? etiqueta(v) : v) + '</option>';
+    }).join('');
+    sel.value = valores.indexOf(actual) !== -1 ? actual : '';
+  }
+  function actualizarFiltros() {
+    var m = estado.modelo, unicos = function (campo) {
+      var v = {}; m.registros.forEach(function (r) { if (r[campo]) v[r[campo]] = true; });
+      return Object.keys(v).sort();
+    };
+    var fechas = unicos('fecha');
+    llenarSelect($('#f-desde'), fechas, 'Inicio');
+    llenarSelect($('#f-hasta'), fechas, 'Fin');
+    llenarSelect($('#f-turno'), unicos('turno'), 'Todos');
+    llenarSelect($('#f-maquina'), unicos('maquina'), 'Todos', nombreEquipo);
+    llenarSelect($('#f-linea'), unicos('linea'), 'Todas');
+    $('#f-maquina-label').hidden = unicos('maquina').length < 2;
+    $('#f-linea-label').hidden = unicos('linea').length < 1;
+  }
+  ['#f-desde', '#f-hasta', '#f-turno', '#f-maquina', '#f-linea'].forEach(function (s) { $(s).addEventListener('change', renderTablero); });
+  $('#btn-limpiar').addEventListener('click', function () {
+    ['#f-desde', '#f-hasta', '#f-turno', '#f-maquina', '#f-linea'].forEach(function (s) { $(s).value = ''; });
+    renderTablero();
+  });
   function filtros() {
-    return {};
+    return { desde: $('#f-desde').value, hasta: $('#f-hasta').value, turno: $('#f-turno').value,
+      maquina: $('#f-maquina').value, linea: $('#f-linea').value };
   }
   function nombreEquipo(id) {
     var q = estado.modelo && estado.modelo.maquinas[id];
@@ -245,6 +273,7 @@
     $('#tablero').hidden = !hay;
     if (!hay) return;
     if (!estado.modelo.registros) estado.modelo.registros = K.calcularRegistros(estado.modelo);
+    actualizarFiltros();
     var a = K.analizar(estado.modelo, filtros()), t = a.total;
     var p100 = function (v) { return v == null ? null : v * 100; };
 
