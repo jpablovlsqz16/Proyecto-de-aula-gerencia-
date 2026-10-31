@@ -94,8 +94,9 @@
   document.querySelectorAll('[data-ir]').forEach(function (b) { b.addEventListener('click', function () { irA(b.dataset.ir); }); });
 
   function actualizarCabecera() {
-    var nombre = estado.archivo ? estado.archivo.nombre : 'sin datos cargados';
-    $('#fuente-actual').textContent = /^Panadería San Nicolás/.test(nombre) ? nombre : 'Panadería San Nicolás · ' + nombre;
+    $('#fuente-actual').textContent = estado.archivo
+      ? 'Panadería San Nicolás · ' + estado.archivo.nombre
+      : 'Panadería San Nicolás · sin datos cargados';
   }
 
   // ---------- Carga del archivo ----------
@@ -147,6 +148,7 @@
     estado.modelo = modelo;
     guardar('pt.base', estado.archivo);
     actualizarCabecera();
+    ['#f-desde', '#f-hasta', '#f-turno', '#f-maquina', '#f-linea'].forEach(function (s) { $(s).value = ''; });
     irA('tablero');
     avisar('Tablero generado: ' + modelo.registros.length + ' turnos, ' + modelo.produccion.length + ' registros de producción y ' +
       modelo.paros.length + ' paros' + (modelo.errores.length ? '; ' + modelo.errores.length + ' fila(s) con errores (ver «Cargar datos»)' : '') + '.');
@@ -255,6 +257,23 @@
   });
 
   // ---------- Tablero ----------
+  var C = { oee: '#b45309', A: '#2563eb', R: '#0f766e', Q: '#7c3aed', paro: '#dc2626', meta: '#6b7280', sla: '#2563eb', nv: '#d97706' };
+  if (window.Chart) {
+    var css = getComputedStyle(document.documentElement);
+    Chart.defaults.font.family = css.fontFamily;
+    Chart.defaults.color = css.getPropertyValue('--texto-suave').trim() || '#6d645a';
+    Chart.defaults.borderColor = css.getPropertyValue('--borde').trim() || '#e4ded4';
+    Chart.defaults.maintainAspectRatio = false;
+    Chart.defaults.animation = false;
+  }
+  function grafico(id, config) {
+    if (estado.graficos[id]) estado.graficos[id].destroy();
+    if (window.Chart) estado.graficos[id] = new Chart(document.getElementById(id), config);
+  }
+  function lineaMeta(etiqueta, valor, n, color) {
+    return { type: 'line', label: etiqueta, data: new Array(n).fill(Number(valor)), borderColor: color || C.meta,
+      borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, fill: false };
+  }
   function tarjeta(etiqueta, valor, unidad, detalle, clave, valorNum) {
     var sem = 'sin-meta', meta = '';
     sem = clave ? semaforo(clave, valorNum) : 'sin-meta';
@@ -302,8 +321,77 @@
       '', 'productividad', pr.valor));
     tarjetas.push(tarjeta('Trenzas buenas', fmt.num(t.buenas), '', fmt.num(t.unidades) + ' producidas en ' + fmt.num(a.datos.produccion.length) + ' tandas'));
     $('#kpis').innerHTML = tarjetas.join('');
+    renderGraficos(a);
   }
 
+  function renderGraficos(a) {
+    var t = a.total, Mt = estado.metas, pr = a.productividad;
+    var fechas = a.porFecha.map(function (g) { return fechaCorta(g.clave); }), n = fechas.length;
+    var serie = function (arr, k) { return arr.map(function (g) { return g[k] == null ? null : g[k] * 100; }); };
+    var ejePct = { y: { min: 0, max: 100, title: { display: true, text: '%' } } };
+    var dsDia = [
+      { label: 'OEE', data: serie(a.porFecha, 'oee'), borderColor: C.oee, backgroundColor: C.oee, borderWidth: 3, tension: .2 },
+      { label: 'Disponibilidad', data: serie(a.porFecha, 'A'), borderColor: C.A, backgroundColor: C.A, borderWidth: 1.5, pointRadius: 1.5, tension: .2 },
+      { label: 'Rendimiento', data: serie(a.porFecha, 'R'), borderColor: C.R, backgroundColor: C.R, borderWidth: 1.5, pointRadius: 1.5, tension: .2 },
+      { label: 'Calidad', data: serie(a.porFecha, 'Q'), borderColor: C.Q, backgroundColor: C.Q, borderWidth: 1.5, pointRadius: 1.5, tension: .2 }
+    ];
+    if (Mt.oee.verde !== '') dsDia.push(lineaMeta('Meta OEE', Mt.oee.verde, n));
+    grafico('g-oee-dia', { type: 'line', data: { labels: fechas, datasets: dsDia },
+      options: { scales: ejePct, plugins: { tooltip: { mode: 'index', intersect: false } } } });
+
+    // Cascada: tiempo programado → paros → pérdida de velocidad → pérdida de calidad → tiempo efectivo.
+    var h = function (v) { return v / 60; }, efectivo = t.Q == null ? t.idealMin : t.idealMin * t.Q;
+    grafico('g-cascada', { type: 'bar', data: {
+      labels: ['Tiempo programado', 'Paros no planeados', 'Pérdida de velocidad', 'Pérdida de calidad', 'Tiempo efectivo'],
+      datasets: [{ label: 'horas', data: [[0, h(t.programado)], [h(t.producido), h(t.programado)], [h(t.idealMin), h(t.producido)], [h(efectivo), h(t.idealMin)], [0, h(efectivo)]],
+        backgroundColor: [C.A, C.paro, '#d97706', C.Q, C.oee] }] },
+      options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: function (c) { return fmt.num(c.raw[1] - c.raw[0], 1) + ' h'; } } } },
+        scales: { y: { beginAtZero: true, title: { display: true, text: 'horas' } } } } });
+
+    var par = a.pareto.slice(0, 10);
+    grafico('g-pareto', { type: 'bar', data: { labels: par.map(function (x) { return x.motivo; }), datasets: [
+      { type: 'line', label: '% acumulado', data: par.map(function (x) { return x.acumulado; }), borderColor: C.oee, backgroundColor: C.oee, yAxisID: 'y1', tension: .1 },
+      { label: 'Minutos', data: par.map(function (x) { return x.minutos; }), backgroundColor: C.paro, yAxisID: 'y' }
+    ] }, options: { scales: { y: { beginAtZero: true, title: { display: true, text: 'min' } },
+      y1: { position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false }, title: { display: true, text: '% acumulado' } },
+      x: { ticks: { callback: function (v) { var l = this.getLabelForValue(v); return l.length > 18 ? l.slice(0, 17) + '…' : l; } } } } } });
+
+    var cd = a.clientePorDia, nc = cd.length;
+    var dsCli = [
+      { label: 'SLA', data: cd.map(function (x) { return x.sla; }), borderColor: C.sla, backgroundColor: C.sla, tension: .2, spanGaps: true },
+      { label: '% no vendido', data: cd.map(function (x) { return x.noVendido; }), borderColor: C.nv, backgroundColor: C.nv, tension: .2, spanGaps: true }
+    ];
+    if (Mt.sla.verde !== '') dsCli.push(lineaMeta('Meta SLA', Mt.sla.verde, nc, C.sla));
+    if (Mt.noVendido.verde !== '') dsCli.push(lineaMeta('Máximo % no vendido', Mt.noVendido.verde, nc, C.nv));
+    grafico('g-cliente', { type: 'line', data: { labels: cd.map(function (x) { return fechaCorta(x.clave); }), datasets: dsCli },
+      options: { scales: ejePct, plugins: { tooltip: { mode: 'index', intersect: false } } } });
+
+    var lb = limites('productividad');
+    if (pr.porFecha) {
+      var dsP = [{ label: 'Trenzas/h-h', data: pr.porFecha.map(function (x) { return x.valor; }), borderColor: C.R, backgroundColor: C.R, tension: .2 }];
+      if (lb) dsP.push(lineaMeta('Línea base + 5 %', lb.verde, pr.porFecha.length));
+      grafico('g-productividad', { type: 'line', data: { labels: pr.porFecha.map(function (x) { return fechaCorta(x.clave); }), datasets: dsP },
+        options: { scales: { y: { beginAtZero: true, title: { display: true, text: 'trenzas/h-h' } } } } });
+    } else {
+      grafico('g-productividad', { type: 'bar', data: { labels: pr.operadores.map(function (o) { return o.nombre; }),
+        datasets: [{ label: 'unid./h-h', data: pr.operadores.map(function (o) { return o.valor; }), backgroundColor: C.R }] },
+        options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+    }
+
+    var barras = function (grupos, etiqueta) {
+      return { type: 'bar', data: { labels: grupos.map(etiqueta), datasets: [
+        { label: 'Disponibilidad', data: serie(grupos, 'A'), backgroundColor: C.A },
+        { label: 'Rendimiento', data: serie(grupos, 'R'), backgroundColor: C.R },
+        { label: 'Calidad', data: serie(grupos, 'Q'), backgroundColor: C.Q },
+        { label: 'OEE', data: serie(grupos, 'oee'), backgroundColor: C.oee }
+      ] }, options: { scales: ejePct } };
+    };
+    var variosEquipos = a.porMaquina.length > 1;
+    $('#fig-maquina').hidden = !variosEquipos;
+    $('#fig-turno').classList.toggle('ancho', !variosEquipos);
+    grafico('g-turno', barras(a.porTurno, function (g) { return 'Turno ' + g.clave; }));
+    if (variosEquipos) grafico('g-maquina', barras(a.porMaquina, function (g) { return nombreEquipo(g.clave); }));
+  }
 
 
 
