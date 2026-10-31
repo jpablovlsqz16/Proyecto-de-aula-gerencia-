@@ -1,8 +1,10 @@
 # Manual de usuario — Tablero de indicadores · Panadería San Nicolás
 
 ## 1. Abrir la aplicación
-- **En línea:** enlace de Google Apps Script o de GitHub Pages (ver README).
-- **Sin internet:** abrir `Frontend/index.html` con doble clic (Chrome, Edge o Firefox). No requiere instalación.
+- **Aplicación en Producción (GitHub Pages):** [https://jpablovlsqz16.github.io/Proyecto-de-aula-gerencia-/](https://jpablovlsqz16.github.io/Proyecto-de-aula-gerencia-/)
+- **Proyecto Web App (Google Apps Script):** [https://script.google.com/d/18r_gFOM09ovDdwcf_LG0ul88MKnE1V7BeXRePZW3K8W8vyJOLJy1Psch/edit](https://script.google.com/d/18r_gFOM09ovDdwcf_LG0ul88MKnE1V7BeXRePZW3K8W8vyJOLJy1Psch/edit)
+- **Repositorio Oficial de Código (GitHub):** [https://github.com/jpablovlsqz16/Proyecto-de-aula-gerencia-](https://github.com/jpablovlsqz16/Proyecto-de-aula-gerencia-)
+- **Sin internet (Local):** Abrir `Frontend/index.html` con doble clic (Chrome, Edge o Firefox). No requiere instalación ni conexión a internet.
 
 ## 2. Preparar los datos
 1. En **Cargar datos**, clic en **Descargar plantilla de Excel**.

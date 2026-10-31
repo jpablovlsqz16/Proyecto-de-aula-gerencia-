@@ -4,9 +4,10 @@ Aplicación web que **genera el tablero de control del proceso de pan trenza a p
 
 Proyecto de Aula 2026-2 · Gerencia de Proyectos · Ingeniería Industrial · Universidad de Medellín
 
-- **Aplicación (Google Apps Script):** _pegar aquí la URL `/exec`_
-- **Aplicación (GitHub Pages):** https://jpablovlsqz16.github.io/Proyecto-de-aula-gerencia-/
-- **Sin internet:** abrir `Frontend/index.html`
+- **Repositorio Oficial en GitHub:** https://github.com/jpablovlsqz16/Proyecto-de-aula-gerencia-
+- **Aplicación Web en Producción (GitHub Pages):** https://jpablovlsqz16.github.io/Proyecto-de-aula-gerencia-/
+- **Proyecto Web App (Google Apps Script):** https://script.google.com/d/18r_gFOM09ovDdwcf_LG0ul88MKnE1V7BeXRePZW3K8W8vyJOLJy1Psch/edit *(Script ID: `18r_gFOM09ovDdwcf_LG0ul88MKnE1V7BeXRePZW3K8W8vyJOLJy1Psch` — Servido por `Backend/Code.gs` e `Index.html`)*
+- **Modo Local Offline (Sin internet):** Abrir directamente `Frontend/index.html` en Chrome, Edge o Firefox (100 % funcional sin conexión gracias a `Frontend/vendor/`).
 
 ## Proceso
 
